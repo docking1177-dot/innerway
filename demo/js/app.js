@@ -209,6 +209,7 @@
       demoRowHtml +
       '    </div>\n' +
       boundHintHtml +
+      '    <div class="code-notice"><span data-icon="shield-check"></span><span>激活即视为已阅读使用须知：<b>一码一设备</b>、激活后不支持退款；每份完成的测评含 <b>1 次</b> AI 解读。</span></div>' +
       '  </div>' +
       '</div>';
     icons.mount(mask);
@@ -326,6 +327,16 @@
       '    <div class="ci-chips">' + chips + '</div>' +
       '    <p class="ci-desc">' + esc(cat.desc || '') + '</p>' +
       '    <div class="ci-note"><span data-icon="shield-check"></span><span>进入后将按本设备的绑定状态引导：未开始则激活体验码；进行中则续答；已完成可查看上次报告或用新码重测。每道题作答即自动保存，中途可随时退出续答。</span></div>' +
+      '    <div class="ci-notice">' +
+      '      <div class="ci-notice-title"><span data-icon="file-text"></span>使用须知 · 激活前请先阅读</div>' +
+      '      <ul class="ci-notice-list">' +
+      '        <li><b>一码一设备</b>：体验码激活后即与当前设备绑定，其他设备无法使用；更换设备需联系购买渠道解绑。</li>' +
+      '        <li><b>AI 解读次数</b>：每份完成的测评可生成 <b>1 次</b> AI 深度解读，生成成功即用尽、不提供重新生成；生成失败可重试，重试不扣次数。</li>' +
+      '        <li><b>聚合解读</b>：同一体验码所包含的全部测评项都完成后，额外获得 <b>1 次</b>「完整人格档案」聚合解读。</li>' +
+      '        <li><b>退款政策</b>：体验码属一次性数字内容，<b>激活后不支持退款</b>；尚未激活的码请通过原购买渠道处理。</li>' +
+      '        <li><b>内容性质</b>：测评与解读仅供自我探索参考，不构成医疗或心理诊断建议。</li>' +
+      '      </ul>' +
+      '    </div>' +
       '    <div class="modal-actions">' +
       '      <button type="button" class="btn btn-primary btn-block" data-act="start"><span data-icon="arrow-right"></span>开始测评</button>' +
       '      <button type="button" class="btn btn-ghost btn-block" data-close>先看看别的</button>' +
@@ -1688,12 +1699,33 @@
     }).join('');
   }
 
-  function aiShell(cache, err, isTat) {
+  /* ---------- AI 解读反馈：本地留痕 + 申诉指引 ---------- */
+  const FB_PREFIX = 'iw.fb.';
+  function readFeedback(resultId) {
+    try { return localStorage.getItem(FB_PREFIX + (resultId || 'unknown')) || ''; } catch (e) { return ''; }
+  }
+  function writeFeedback(resultId, v) {
+    try { localStorage.setItem(FB_PREFIX + (resultId || 'unknown'), v); } catch (e) { /* ignore */ }
+  }
+  function feedbackHtml(resultId) {
+    const v = readFeedback(resultId);
+    return '<div class="ai-fb" data-fb>' +
+      (v
+        ? '<span class="ai-fb-thanks"><span data-icon="check"></span>谢谢你的反馈' + (v === 'good' ? '，很高兴它帮到了你。' : '，我们会继续改进。') + '</span>'
+        : '<span class="ai-fb-q">这份解读有帮助吗？</span>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-act="fb-good"><span data-icon="check"></span>有帮助</button>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-act="fb-bad"><span data-icon="x"></span>没帮助</button>') +
+      '</div>' +
+      '<div class="ai-fb-help">如需人工协助（更换设备解绑、体验码异常、报告无法打开等），请联系你的购买渠道；本站不设账号体系，不采集姓名与手机号。内容由 AI 生成，仅供参考。</div>';
+  }
+
+  function aiShell(cache, err, isTat, fbKey) {
     const safe = function (t) { return t == null ? '' : String(t); };
     const title = isTat ? 'AI 故事回看' : 'AI 深度解读';
     const icoBg = isTat ? '#E3E7EC' : '#EDE4D2';
     const icoFg = isTat ? '#54697C' : '#8A6B33';
     if (cache && safe(cache.text)) {
+      const fbHtml = feedbackHtml(fbKey);
       return '<div class="ai-result">' +
         '<div class="read-sec-head">' +
         '<span class="read-sec-ico" style="background:' + icoBg + ';color:' + icoFg + '"><span data-icon="sparkles"></span></span>' +
@@ -1701,6 +1733,7 @@
         '<span class="dim-tag" style="margin-left:auto;background:#E4EBE2;color:#4E6B57">本次次数已使用</span></div>' +
         '<div id="aiChartsSlot"></div>' +
         aiFormatHtml(safe(cache.text)) +
+        fbHtml +
         '<div class="ai-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">' +
         '  <button type="button" class="btn btn-ghost btn-sm" data-act="ai-settings"><span data-icon="key-round"></span>AI 设置</button></div>' +
         '<div class="ai-note" style="margin-top:12px;font-size:12px;color:var(--text-sub)">每个完成的测评可免费生成 1 次' + (isTat ? ' AI 故事回看' : ' AI 深度解读') + '，本次已使用完毕（不提供重新生成）。完成一次新的测评可再次获得 1 次。内容仅供自我探索参考，不构成诊断或专业意见。</div>' +
@@ -1726,7 +1759,7 @@
     const cloudText = ctx.record && ctx.record.ai && ctx.record.ai.text;
     const text = cloudText || (local && local.text) || '';
     const isTat = !!(ctx.cat && ctx.cat.id === 'tat');
-    root.innerHTML = aiShell(text ? { text: text } : null, ctx.lastErr || '', isTat);
+    root.innerHTML = aiShell(text ? { text: text } : null, ctx.lastErr || '', isTat, ctx.resultId);
     icons.mount(root);
     // 图表随 AI 解读一同出现：无解读则不显示，生成后立即挂到解读之后
     syncChartsAfterAI(!!text, ctx.rep || {});
@@ -1736,7 +1769,19 @@
       const act = hit.getAttribute('data-act');
       if (act === 'ai-run') runMBTIAI(root, ctx);
       else if (act === 'ai-settings') openAISettingsModal(null);
+      else if (act === 'fb-good' || act === 'fb-bad') submitFeedback(root, ctx, act === 'fb-good' ? 'good' : 'bad');
     };
+  }
+  // 反馈：写入本机留痕，并把反馈区切换为致谢态（不阻断阅读）
+  function submitFeedback(root, ctx, v) {
+    writeFeedback(ctx.resultId, v);
+    const box = root.querySelector('[data-fb]');
+    if (box) {
+      box.innerHTML = '<span class="ai-fb-thanks"><span data-icon="check"></span>谢谢你的反馈' +
+        (v === 'good' ? '，很高兴它帮到了你。' : '，我们会继续改进。') + '</span>';
+      icons.mount(box);
+    }
+    toast(v === 'good' ? '谢谢你的反馈' : '已记录，感谢你的反馈');
   }
   // 在结果页末尾追加 AI 区并挂载（各量表渲染完成后调用）
   function attachAI(rep, cat) {
