@@ -9,6 +9,11 @@
 
   // 运行配置（由 js/config.js 提供；构建时替换该文件即可产出「用户版 / 管理版」）
   const IWCFG = Object.assign({ adminConsole: false, selfServiceCode: true, aiProxyBase: '' }, global.IW_CONFIG || {});
+  // 服务端模式（apiBase 非空 = 真实后端；空 = 纯静态本地模式）
+  const SRV = !!String(IWCFG.apiBase || '');
+  const DATA_NOTE = SRV
+    ? '作答与报告保存在服务器，仅按体验码与设备归属访问，不采集身份信息'
+    : '作答与报告仅保存在本设备浏览器（演示版无云端存储）';
 
   const D = global.Innerway.data;
   const S = global.Innerway.server;
@@ -117,13 +122,13 @@
     mask.className = 'modal-mask';
     const sub = {
       holland: '「' + esc(cat.name) + '」包含精简与完整两个版本：精简版对应官方 Mini-IP（每型 5 题，30 题）；完整版对应官方 Short Form（每型 10 题，60 题）。两者均为同一份体验码可测。',
-      repression: '「' + esc(cat.name) + '」提供两个版本：快测适合初次了解；完整版更全面，需要更长时间。两者共享同一体验码流程，作答与报告仅保存在本设备浏览器（演示版无云端存储）。',
+      repression: '「' + esc(cat.name) + '」提供两个版本：快测适合初次了解；完整版更全面，需要更长时间。两者共享同一体验码流程，' + DATA_NOTE + '。',
       control: '「' + esc(cat.name) + '」一个看「动机」、一个看「行为」，可以分别作答，也可以相互对照。两者均为面向成年人的本土化改编版本（非原版量表、非诊断）。'
     }[cat.id] || '';
     const note = {
       holland: '本卷中文编译自美国劳工部 O*NET Interest Profiler（按官方 License 授权编译，非公共领域；须保留版权与 O*NET® 商标声明）；题目均为工作活动描述，凭「喜欢程度」作答即可。',
-      repression: '本评估面向 <b>18 岁及以上成年人</b>；内容涉及性心理话题，作答与结果仅保存在本设备浏览器（演示版无云端、不采集身份信息）。未成年人请勿使用。',
-      control: '面向 18 岁及以上成年人；内容为基于公开量表构念的自我觉察工具，作答与结果仅保存在本设备浏览器（演示版无云端、不采集身份信息）。'
+      repression: '本评估面向 <b>18 岁及以上成年人</b>；内容涉及性心理话题，' + DATA_NOTE + '。未成年人请勿使用。',
+      control: '面向 18 岁及以上成年人；内容为基于公开量表构念的自我觉察工具，' + DATA_NOTE + '。'
     }[cat.id] || '';
     const descFor = function (key) {
       const m = VAR_DESC[key] || '';
@@ -177,12 +182,12 @@
     const multi = isVariantCat(cat.id);
     const codeSub = multi
       ? '「' + esc(cat.name) + '」为单次激活测评，包含多个版本——<b>一份体验码，所有版本均可测试</b>，无需分别获取。激活后即可选择版本开始作答。'
-      : '「' + esc(cat.name) + '」为单次激活测评。<br>演示版可点击下方按钮自助获取体验码；一码一设备，激活即与当前设备绑定。';
+      : '「' + esc(cat.name) + '」为单次激活测评。<br>' + (SRV ? '请粘贴你在官方渠道获得的专属体验码；一码一设备，激活即与当前设备绑定。' : '演示版可点击下方按钮自助获取体验码；一码一设备，激活即与当前设备绑定。');
     const demoRowHtml = IWCFG.selfServiceCode
       ? '      <button type="button" class="btn btn-ghost btn-block" id="codeDemo">没有专属码？获取一个演示码</button>\n'
       : '';
-    const boundHintHtml = IWCFG.selfServiceCode
-      ? '    <div class="bound-hint" id="boundHint" hidden><span data-icon="lock"></span><span>演示模式：激活后体验码将与当前设备绑定，其他设备无法使用。</span></div>'
+    const boundHintHtml = (IWCFG.selfServiceCode || SRV)
+      ? '    <div class="bound-hint" id="boundHint" hidden><span data-icon="lock"></span><span>激活后体验码将与当前设备绑定，其他设备无法使用。</span></div>'
       : '';
     mask.innerHTML =
       '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="codeModalTitle">' +
@@ -1004,7 +1009,7 @@
     // 核心优势
     const FEATURES = [
       { no: '01', icon: 'book-open', tint: '#9A7B60', soft: '#F0E4D3', title: '清晰标注来源', text: 'MBTI 性格类型为自研 48 题题本（已标注非官方）；霍兰德为 O*NET® 授权编译；其余改编/译制量表均已在题本、报告与文档中标注来源与授权口径。' },
-      { no: '02', icon: 'shield-check', tint: '#77836B', soft: '#E4E7D9', title: '凭码使用 · 隐私克制', text: '免注册、免登录即可测评；作答与报告仅保存在当前设备浏览器（演示版不收集任何身份信息）。' },
+      { no: '02', icon: 'shield-check', tint: '#77836B', soft: '#E4E7D9', title: '凭码使用 · 隐私克制', text: '免注册、免登录即可测评；' + DATA_NOTE + '。' },
       { no: '03', icon: 'save-check', tint: '#B08D57', soft: '#F1E7CE', title: '即答即存 · 随时续答', text: '每一题的选择都会自动保存，中途退出、误关页面都不必重来，回来即可继续。' },
       { no: '04', icon: 'file-text', tint: '#7D8A97', soft: '#E1E6EA', title: '报告随设备存档', text: '完成后自动生成类型代码、维度图表与解读，报告按设备存档，可随时回看。' }
     ];
@@ -1017,8 +1022,8 @@
 
     // 常见问题
     const FAQS = [
-      { q: '需要注册或登录账号吗？', a: '不需要。演示版点击「获取演示码」即可自助开始，也可以输入已有码激活；码与设备绑定后，再次访问可直接续答或查看报告。' },
-      { q: '一张专属码可以在多台设备使用吗？', a: '不可以。体验码首次激活即与当前设备绑定，防止同一份码在多个设备流转。演示数据仅存于当前浏览器，清除浏览器数据后设备绑定会重置，重新获取体验码即可。' },
+      { q: '需要注册或登录账号吗？', a: '不需要。输入你从官方渠道获得的专属体验码即可开始；码与设备绑定后，再次访问可直接续答或查看报告。' },
+      { q: '一张专属码可以在多台设备使用吗？', a: '不可以。体验码首次激活即与当前设备绑定，防止同一份码在多个设备流转。如需换设备，请联系发放渠道处理。' },
       { q: '中途退出或误关页面会丢失进度吗？', a: '不会。每道题选择都会自动保存，中途退出、误关页面都不必重来，回来即可继续。' },
       { q: '测评结果如何查看与保存？', a: '完成全部题目后自动生成报告，包含类型代码、维度图表与解读，并按设备存档。首页「往期报告」可随时回看。' },
       { q: '这些测评专业吗？', a: '在架测评均采用经典框架与公开量表的授权中文编译或本土化改编，题本已逐条标注来源与授权口径（如霍兰德为 O*NET® 授权编译版）。报告仅供自我探索参考，不构成医疗或心理诊断。' }
@@ -1058,12 +1063,12 @@
       '  </svg></div>' +
       '  <div class="hero-kicker">THE INWARD JOURNEY</div>' +
       '  <h1>向内而行，<br><em>遇见真实的自己</em></h1>' +
-      '  <p class="hero-sub">专业的心理测评工具集合。本网站为在线演示版：点击「获取演示码」即可免注册体验——答案不在别处，而在你心里。</p>' +
+      '  <p class="hero-sub">专业的心理测评工具集合。' + (SRV ? '输入专属体验码即可免注册开始——答案不在别处，而在你心里。' : '本网站为在线演示版：点击「获取演示码」即可免注册体验——答案不在别处，而在你心里。') + '</p>' +
       '  <div class="hero-cta">' +
       '    <a class="btn btn-primary btn-lg" href="#cats"><span data-icon="compass"></span>选择测评</a>' +
       '    <a class="btn btn-ghost btn-lg" href="#faq"><span data-icon="book-open"></span>了解常见问题</a>' +
       '  </div>' +
-      '  <p class="hero-note"><span data-icon="shield-check"></span>体验码一码一设备，激活后与当前设备绑定；演示数据仅保存在本机浏览器</p>' +
+      '  <p class="hero-note"><span data-icon="shield-check"></span>体验码一码一设备，激活后与当前设备绑定；' + (SRV ? '作答与报告保存在服务器，仅凭设备归属访问' : '演示数据仅保存在本机浏览器') + '</p>' +
       '</div>' +
       '<div class="wrap">' +
       contHtml +
@@ -1787,16 +1792,36 @@
             digest: ['（作答整理失败，已降级为简要摘要）']
           };
     }
-    const run = isTat ? function (p) { return AI.chat(AI.tatMessages(p)); } : function (p) { return AI.chat(AI.quizMessages(p)); };
+    const api = global.Innerway && global.Innerway.api;
+    const serverMode = !!(api && api.isServerMode && api.isServerMode());
+    const msgs = function (p) { return isTat ? AI.tatMessages(p) : AI.quizMessages(p); };
+    const run = function (p) {
+      // 服务端模式：由后端计次（每个结果 1 次）并代理模型，Key 不出服务器
+      if (serverMode && ctx.record && ctx.record.code) {
+        return api.aiChat({
+          kind: 'single', code: ctx.record.code, resultId: ctx.resultId,
+          deviceId: ctx.record.deviceId, messages: msgs(p)
+        }).then(function (r) {
+          if (r && r.ok && r.data && r.data.text) {
+            ctx.record.ai = { text: r.data.text, model: r.data.model, at: Date.now() };
+            AI.writeCache(ctx.resultId, r.data.text);
+            return { ok: true, text: r.data.text };
+          }
+          return { ok: false, message: (r && r.message) || '生成失败，请重试' };
+        });
+      }
+      return AI.chat(msgs(p));
+    };
     run(payload).then(function (res) {
       ctx.aiRunning = false;
       if (res.ok) {
-        AI.writeCache(ctx.resultId, res.text);
-        // 并入结果记录：与报告一同持久化到（模拟）云端，回看旧报告自动带出
-        const api = global.Innerway && global.Innerway.api;
-        if (api && api.saveResultAI && ctx.record && ctx.record.deviceId) {
-          api.saveResultAI({ resultId: ctx.resultId, deviceId: ctx.record.deviceId, aiText: res.text, model: cfg.model })
-            .then(function (sr) { if (sr && sr.ok) toast('AI 解读已随报告存入云端，回看自动带出'); });
+        if (!serverMode) {
+          AI.writeCache(ctx.resultId, res.text);
+          // 并入结果记录：与报告一同持久化到（模拟）云端，回看旧报告自动带出
+          if (api && api.saveResultAI && ctx.record && ctx.record.deviceId) {
+            api.saveResultAI({ resultId: ctx.resultId, deviceId: ctx.record.deviceId, aiText: res.text, model: cfg.model })
+              .then(function (sr) { if (sr && sr.ok) toast('AI 解读已随报告存入云端，回看自动带出'); });
+          }
         }
         mountMBTIAI(root, ctx);
       }
@@ -2043,17 +2068,17 @@
       '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">' +
       '  <div class="modal-head">' +
       '    <div><div class="modal-title" id="privacyTitle">隐私与免责</div>' +
-      '      <div class="modal-sub">向内而行 Innerway · 在线演示版（2026-09 更新）</div>' +
+      '      <div class="modal-sub">向内而行 Innerway · ' + (SRV ? '隐私与免责' : '在线演示版') + '（2026-09 更新）</div>' +
       '    </div>' +
       '    <button type="button" class="modal-x" data-close aria-label="关闭"><span data-icon="x"></span></button>' +
       '  </div>' +
       '  <div class="modal-body" style="max-height:62vh;overflow-y:auto">' +
       '    <div class="bound-hint" style="margin-bottom:14px"><span data-icon="shield-check"></span>' +
-      '      <span>本站在线演示版<b>不收集任何身份信息</b>；你的作答、进度与报告仅保存在自己的浏览器中。</span></div>' +
+      '      <span>本站<b>不收集任何身份信息</b>；' + (SRV ? '你的作答、进度与报告保存在本站服务器，仅凭设备归属访问。' : '你的作答、进度与报告仅保存在自己的浏览器中。') + '</span></div>' +
       '    <p class="privacy-sec-title"><span data-icon="layers"></span>一、数据与隐私</p>' +
       '    <ul class="privacy-list">' +
-      '      <li>作答、进度与报告仅存于本机浏览器（localStorage）；清除浏览器数据即可完全抹除。</li>' +
-      '      <li>设备标识仅用于演示「一码一设备」绑定逻辑，同样只存本机，不会上传到任何服务器。</li>' +
+      '      <li>' + (SRV ? '作答、进度与报告保存在本站服务器，仅按体验码与设备归属访问；不采集姓名、手机号等身份信息。' : '作答、进度与报告仅存于本机浏览器（localStorage）；清除浏览器数据即可完全抹除。') + '</li>' +
+      '      <li>' + (SRV ? '随机生成的设备标识仅用于「一码一设备」绑定与恢复进度，会随请求发送到本站服务器，不含任何身份信息。' : '设备标识仅用于「一码一设备」绑定逻辑，同样只存本机，不会上传到任何服务器。') + '</li>' +
       '      <li>本平台不要求、也不收集手机号、邮箱等任何可识别身份的信息。</li>' +
       '      <li>「AI 深度解读」为可选功能：默认由<b>本站代理</b>调用模型（Key 由平台保管、不出现在前端）；若在 AI 设置选择「直连」，Key 仅保存在本机、作答将直发你填写的接口。开启后，本次作答的<b>全部题目原文与结果摘要</b>会发送给模型服务商，请知悉后再使用。</li>' +
       '    </ul>' +
@@ -2071,7 +2096,7 @@
       '    <ul class="privacy-list">' +
       (IWCFG.adminConsole
         ? '      <li>本演示版不设账号与人工客服：页脚「演示控制台 → 重置全部」可将本机数据恢复为初始状态。</li>'
-        : '      <li>本站不设账号与人工客服：作答与报告仅存于本机浏览器，清除浏览器数据/缓存即恢复到初始状态。</li>') +
+        : '      <li>本站不设账号与人工客服：' + (SRV ? '作答与报告保存在服务器并绑定当前设备，页面「隐私与免责」可查看数据处理说明。' : '作答与报告仅存于本机浏览器，清除浏览器数据/缓存即恢复到初始状态。') + '</li>') +
       '    </ul>' +
       '  </div>' +
       '</div>';
@@ -2093,8 +2118,19 @@
     if (mode === 'cached') {
       return aiFormatHtml(extra.text) +
         '<div class="ai-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">' +
-        '  <button type="button" class="btn btn-ghost btn-sm" data-act="pf-run"><span data-icon="refresh-cw"></span>重新生成</button>' +
-        '  <button type="button" class="btn btn-ghost btn-sm" data-act="ai-settings"><span data-icon="key-round"></span>AI 设置</button></div>';
+        (extra.serverMode
+          ? ''
+          : '  <button type="button" class="btn btn-ghost btn-sm" data-act="pf-run"><span data-icon="refresh-cw"></span>重新生成</button>') +
+        '  <button type="button" class="btn btn-ghost btn-sm" data-act="ai-settings"><span data-icon="key-round"></span>AI 设置</button></div>' +
+        (extra.serverMode
+          ? '<div class="ai-note" style="margin-top:12px;font-size:12px;color:var(--text-sub)">每个体验码限 1 次「完整人格档案」聚合解读，本次机会已使用（不提供重新生成）。</div>'
+          : '');
+    }
+    if (extra.serverMode) {
+      return '<p class="arch-ai-intro">将你已完成的项目交由 AI 综合，输出一份约 800–1000 字的「完整人格档案」：稳定内核、情境性表现、测评间的印证与张力、可执行的成长方向。生成内容保存在服务端，每个体验码限 <b>1 次</b>，用后即止。</p>' +
+        '<div class="ai-actions" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">' +
+        '  <button type="button" class="btn btn-primary" data-act="pf-run"><span data-icon="sparkles"></span>用 AI 生成完整人格档案</button>' +
+        '  <button type="button" class="btn btn-ghost" data-act="ai-settings"><span data-icon="key-round"></span>AI 设置（高级）</button></div>';
     }
     return '<p class="arch-ai-intro">将你已完成的全部测评（性格、兴趣、动机与防御、人格暗面、大五、心理健康自评）交由 AI 综合，输出一份约 800–1000 字的「完整人格档案」：稳定内核、情境性表现、测评间的印证与张力、可执行的成长方向。生成内容保存在本机，可随时重新生成。</p>' +
       '<div class="ai-actions" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">' +
@@ -2106,24 +2142,49 @@
     const box = $('#archAiBody');
     if (!box) return;
     const AI = global.Innerway && global.Innerway.ai;
+    const API = global.Innerway && global.Innerway.api;
+    const serverMode = !!(API && API.isServerMode && API.isServerMode());
     const cached = AI && AI.readCache('profile');
-    const text = cached && cached.text ? String(cached.text) : '';
-    box.innerHTML = profileBodyHtml(ctx.allDone ? (text ? 'cached' : 'ready') : 'locked', {
-      missing: ctx.missing, total: ctx.total, text: text
+    const text = serverMode ? String(ctx.aggText || '') : (cached && cached.text ? String(cached.text) : '');
+    const unlocked = serverMode ? !!ctx.aggUnlocked : !!ctx.allDone;
+    box.innerHTML = profileBodyHtml(unlocked ? (text ? 'cached' : 'ready') : 'locked', {
+      missing: ctx.missing, total: ctx.total, text: text, serverMode: serverMode
     });
     const repaint = function () { mountArchiveAi(ctx); };
 
     const run = function () {
-      if (!ctx.allDone) { toast('请先完成全部测评', 'err'); return; }
+      if (!unlocked) { toast(serverMode ? '请先完成本体验码包含的全部测评' : '请先完成全部测评', 'err'); return; }
       if (!AI) return;
+      let payload = null;
+      try { payload = AI.buildProfilePayload(ctx.results, ctx.cats); } catch (e) { payload = { count: ctx.results.length, items: [], mentalAlert: false }; }
+
+      // 服务端模式：由后端计次（每码 1 次聚合）并代理模型
+      if (serverMode) {
+        if (!ctx.aggCode) { toast('未找到可用的体验码', 'err'); return; }
+        box.innerHTML = '<div style="padding:26px 8px;text-align:center;color:var(--text-sub)"><span class="spinner"></span><div style="margin-top:12px">AI 正在综合 ' + ctx.results.length + ' 份测评结果生成完整人格档案…</div></div>';
+        API.aiChat({ kind: 'aggregate', code: ctx.aggCode, deviceId: state.deviceId, messages: AI.profileMessages(payload) }).then(function (r) {
+          if (r && r.ok && r.data && r.data.text) {
+            ctx.aggText = r.data.text; ctx.aggUnlocked = false;
+            toast('完整人格档案已生成');
+            repaint();
+          } else {
+            box.innerHTML = '<div class="ai-actions" style="flex-direction:column;gap:12px;padding:10px 2px">' +
+              '<div style="color:var(--text-sub);font-size:13.5px;line-height:1.8">生成失败：' + esc((r && r.message) || '请重试') + '</div>' +
+              '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+              '<button type="button" class="btn btn-primary" data-act="pf-run"><span data-icon="refresh-cw"></span>重试</button>' +
+              '<button type="button" class="btn btn-ghost" data-act="ai-settings"><span data-icon="key-round"></span>AI 设置</button></div></div>';
+            if (icons && icons.mount) icons.mount(box);
+          }
+        });
+        return;
+      }
+
       const cfg = AI.getSettings();
       if (!cfg || (!cfg.apiKey && !cfg.baseUrl)) {
         openAISettingsModal(function () { setTimeout(repaint, 80); });
         return;
       }
       box.innerHTML = '<div style="padding:26px 8px;text-align:center;color:var(--text-sub)"><span class="spinner"></span><div style="margin-top:12px">AI 正在综合 ' + ctx.results.length + ' 份测评结果生成完整人格档案…</div></div>';
-      let payload = null;
-      try { payload = AI.buildProfilePayload(ctx.results, ctx.cats); } catch (e) { payload = { count: ctx.results.length, items: [], mentalAlert: false }; }
       AI.chat(AI.profileMessages(payload)).then(function (res) {
         if (res.ok) {
           AI.writeCache('profile', res.text);
@@ -2189,6 +2250,22 @@
 
     const ctx = { allDone: allDone, missing: missing, total: openCats.length,
       results: openCats.map(function (c) { return byCat[c.id]; }).filter(Boolean), cats: cats };
+    // 服务端模式：聚合解读的解锁与余额以服务端「体验码计划」为准
+    if (A.isServerMode && A.isServerMode()) {
+      const cr = await A.getMyCodes(state.deviceId);
+      const codes = (cr && cr.ok && cr.data) || [];
+      const usedCode = codes.filter(function (c) { return c.aggregateText; })[0] || null;
+      const readyCode = codes.filter(function (c) { return c.allDone && !c.aggregateText; })[0] || null;
+      ctx.aggCode = (readyCode || usedCode || codes[0] || {}).code || null;
+      ctx.aggText = (usedCode && usedCode.aggregateText) || '';
+      ctx.aggUnlocked = !!readyCode;
+      if (readyCode || usedCode) {
+        const c0 = readyCode || usedCode;
+        ctx.planTotal = c0.planTotal; ctx.planDone = c0.planDone;
+        ctx.allDone = true;   // 该码已全部完成（用于页面文案）
+        ctx.missing = [];
+      }
+    }
     render('#stage',
       '<div class="wrap arch-wrap">' +
       '  <div class="section-head"><div><span class="sec-no">MY ARCHIVE · PROFILE</span>' +
@@ -2208,7 +2285,7 @@
       '      <span class="read-sec-title">完整人格档案</span>' +
       '      <span class="dim-tag" style="margin-left:auto;background:#F1E7CE;color:#8A6B33">AI · 跨测评综合</span></div>' +
       '    <div id="archAiBody"></div>' +
-      '    <div style="margin-top:14px;font-size:12px;color:var(--text-sub)">本档案由外部大模型依据你的多份测评结果摘要生成并自动排版，仅供自我探索参考，不构成诊断或专业意见；Key 仅存本机浏览器。</div>' +
+      '    <div style="margin-top:14px;font-size:12px;color:var(--text-sub)">本档案由大模型依据你的多份测评结果摘要生成并自动排版，仅供自我探索参考，不构成诊断或专业意见；' + (SRV ? '模型调用由本站服务端完成（密钥不出服务器），生成内容保存在服务器。' : 'Key 仅存本机浏览器。') + '</div>' +
       '  </div>' +
       '</div>');
     mountArchiveAi(ctx);
