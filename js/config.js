@@ -1,4 +1,4 @@
-﻿/* build artifact: 2026-09-11 22:22 - user */
+﻿/* build artifact: 2026-09-12 16:46 - user */
 window.IW_CONFIG = {
   adminConsole: false,
   selfServiceCode: true,
