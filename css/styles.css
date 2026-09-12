@@ -400,6 +400,24 @@ img,svg{display:block}
   border-radius:var(--r-md);padding:11px 14px;margin:10px 0;font-size:13px;line-height:1.8;color:#6B3A2D}
 .ai-quote>span{flex:none;font-size:13px}
 .ai-quote>div{flex:1;min-width:0}
+/* AI 解读：卡片内子标题（### 渲染为小标题，不再拆成新卡片） */
+.ai-sub{font-family:var(--font-display);font-weight:700;font-size:14.5px;color:var(--ink);
+  margin:16px 0 6px;padding-left:11px;border-left:3px solid var(--gold);line-height:1.7}
+.ai-sub:first-child{margin-top:2px}
+/* AI 解读：「说明与免责」与解读正文区分——弱化、去卡片化 */
+.read-block.ai-disclaimer-block{background:transparent;border:1px dashed var(--border);box-shadow:none;
+  padding:clamp(16px,2.4vw,22px)}
+.ai-disclaimer-block .read-sec-title{font-family:var(--font-body);font-size:13.5px;font-weight:700;color:var(--text-sub)}
+.ai-disclaimer-block .read-sec-ico{width:26px;height:26px;border-radius:8px}
+.ai-disclaimer-block .read-sec-ico svg{width:14px;height:14px}
+.ai-disclaimer-block .sr-para{font-size:12.5px;color:var(--text-sub);line-height:1.95}
+.ai-disclaimer-block .read-sec-list li{font-size:12.5px;color:var(--text-sub)}
+.ai-disclaimer-block .read-sec-list li::before{background:var(--text-faint)}
+/* 雷达图 / 偏好强度尺：随 AI 解读出现在「AI 深度解读」标题之下、正文之前 */
+.pending-charts{animation:pcIn .5s var(--ease) both;margin:16px 0 20px}
+.chart-cards-after-ai{margin-top:0}
+@keyframes pcIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(max-width:720px){.chart-cards-after-ai{grid-template-columns:1fr}}
 
 /* ---------- 图表 ---------- */
 .radar-wrap{display:grid;place-items:center}
@@ -558,11 +576,18 @@ img,svg{display:block}
 .p-state{text-align:center;font-size:13px;color:#5C6A52;margin-top:13px;min-height:21px;
   font-weight:600;line-height:1.6}
 @media(max-width:600px){
-  .polar-cols{grid-template-columns:1fr;gap:10px}
-  .p-axis{flex-direction:row;padding:0 6px}
-  .p-axis span{flex:1;height:1.5px;width:auto;background:repeating-linear-gradient(to right,transparent 0 3px,#D9CDB6 3px 6px)}
-  .p-left,.p-right{border-radius:var(--r-md)}
+  /* 窄屏仍保持左右两段并排（避免被挤成上下两段）：收窄中轴与内边距、微调字号 */
+  .polar-cols{grid-template-columns:1fr 24px 1fr}
+  .p-anchor{padding:12px 10px;gap:8px}
+  .p-text{font-size:13px;line-height:1.72}
+  .p-axis{font-size:9.5px;padding:8px 0}
   .p-pt em{font-size:10px}
+}
+@media(max-width:380px){
+  .polar-cols{grid-template-columns:1fr 20px 1fr}
+  .p-anchor{padding:10px 9px}
+  .p-text{font-size:12.5px;line-height:1.7}
+  .p-axis{font-size:9px}
 }
 
 /* ---------- 空间偏好：热区点击题 ---------- */

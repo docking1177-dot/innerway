@@ -1,7 +1,7 @@
-﻿/* build artifact: 2026-09-12 20:46 - admin */
+﻿/* build artifact: 2026-09-12 22:00 - admin */
 window.IW_CONFIG = {
   adminConsole: true,
-  selfServiceCode: true,
-  apiBase: '',
+  selfServiceCode: false,
+  apiBase: '/api/v1',
   aiProxyBase: ''
 };

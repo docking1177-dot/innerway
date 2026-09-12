@@ -132,14 +132,9 @@
       : '四个维度均呈现较为明确的偏好，' + typeCode + '可以作为你相对稳定的类型概括：得分越接近区间上限，对应特质通常越典型、越稳定。');
     clarityText.push('轻微偏好或趋近平衡的维度，不代表你不具备另一侧的能力——只是它们更依赖情境、更容易随状态切换。阅读长处与盲区时，请优先采信「明确」维度上的描述，再酌情参考其余部分。');
 
-    // 报告 sections：长处 / 盲区 / 职业 / 成长
-    const tint = { strength: '#B08D57', softS: '#F1E7CE', blind: '#77836B', softB: '#E4E7D9', career: '#9A7B60', softC: '#F0E4D3', tip: '#7D8A97', softT: '#E1E6EA' };
-    const sections = [
-      { icon: 'sun', tint: tint.strength, soft: tint.softS, title: '潜在长处', items: t.strengths },
-      { icon: 'moon', tint: tint.blind, soft: tint.softB, title: '可能的盲区', items: t.blindspots },
-      { icon: 'compass', tint: tint.career, soft: tint.softC, title: '职业方向参考', items: t.careers },
-      { icon: 'sparkles', tint: tint.tip, soft: tint.softT, title: '成长提示与使用建议', items: ['成长提示：' + t.tip] }
-    ];
+    // 报告 sections：底部四块（潜在长处 / 可能的盲区 / 职业方向参考 / 成长提示与使用建议）
+    // 暂时关闭 —— 已下沉给「AI 深度解读」承载（见 js/ai.js 的 CAT_EXTRA_SECTIONS.mbti）
+    const sections = [];
 
     return {
       engine: 'mbti',

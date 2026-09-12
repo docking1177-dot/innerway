@@ -1599,6 +1599,7 @@
     window.scrollTo({ top: 0 });
   }
   let aiCtxRecord = null; // 最近一次打开的报告记录（含逐题 answers），供 AI 结果区挂载使用
+  let pendingResultCharts = null; // MBTI：待挂到「AI 解读」之后的图表（雷达图 + 偏好强度尺）
 
   // AI 自动排版：把「## 小节标题 + 段落/列表 + **加粗**」渲染为站点报告同款卡片
   const AI_THEME = [
@@ -1619,13 +1620,20 @@
     const lines = String(text).split(/\r?\n/);
     const segs = [];
     let cur = null;
-    const headRe = /^#{1,6}\s+(.+?)\s*$/;
+    const cardRe = /^#{1,2}\s+(.+?)\s*$/;  // ## 小节标题 → 独立卡片
+    const subRe = /^#{3,6}\s+(.+?)\s*$/;   // ### 子标题 → 卡片内小标题（不再拆成新卡片）
     lines.forEach(function (line) {
       const t = line.replace(/\s+$/, '');
-      const m = headRe.exec(t);
+      let m = cardRe.exec(t);
       if (m) {
         cur = { title: m[1].replace(/[*_`]/g, '').trim(), lines: [] };
         segs.push(cur);
+        return;
+      }
+      m = subRe.exec(t);
+      if (m) {
+        if (!cur) { cur = { title: null, lines: [] }; segs.push(cur); }
+        cur.lines.push({ sub: m[1].replace(/[*_`]/g, '').trim() });
         return;
       }
       if (!t.trim()) return;
@@ -1634,30 +1642,48 @@
       if (!cur) { cur = { title: null, lines: [] }; segs.push(cur); }
       cur.lines.push(t.trim());
     });
+    // 开篇短评（无标题首段）移到解读最后，仍位于「说明与免责」之前
+    if (segs.length > 1 && !segs[0].title) {
+      const lead = segs.shift();
+      let at = segs.length;
+      for (let k = segs.length - 1; k >= 0; k--) {
+        if (/说明与免责/.test(segs[k].title || '')) { at = k; break; }
+      }
+      segs.splice(at, 0, lead);
+    }
     return segs.map(function (seg, i) {
       const th = AI_THEME[i % AI_THEME.length];
-      const bullets = [];
-      const paras = [];
+      const isDisclaimer = /说明与免责/.test(seg.title || '');
+      const blocks = [];
+      let pendingBullets = [];
+      const flushBullets = function () {
+        if (!pendingBullets.length) return;
+        blocks.push('<ul class="read-sec-list">' + pendingBullets.map(function (b) { return '<li>' + b + '</li>'; }).join('') + '</ul>');
+        pendingBullets = [];
+      };
       (seg.lines || []).forEach(function (ln) {
-        const bm = /^[-•·]\s+/.exec(ln);
-        if (bm) bullets.push(aiInline(ln.replace(/^[-•·]\s+/, '')));
-        else {
-          // 安全网：把 “> …” 引用行渲染为警示色块（AI 输出规范已要求避免，但兜底兼容）
-          const qm = /^>\s?/.exec(ln);
-          if (qm) paras.push('<div class="ai-quote"><span>⚠️</span><div>' + aiInline(ln.slice(qm[0].length)) + '</div></div>');
-          else paras.push('<p class="sr-para">' + aiInline(ln) + '</p>');
+        if (ln && typeof ln === 'object' && ln.sub) {
+          flushBullets();
+          blocks.push('<div class="ai-sub">' + aiInline(ln.sub) + '</div>');
+          return;
         }
+        const bm = /^[-•·]\s+/.exec(ln);
+        if (bm) { pendingBullets.push(aiInline(ln.replace(/^[-•·]\s+/, ''))); return; }
+        flushBullets();
+        // 安全网：把 “> …” 引用行渲染为警示色块（AI 输出规范已要求避免，但兜底兼容）
+        const qm = /^>\s?/.exec(ln);
+        if (qm) blocks.push('<div class="ai-quote"><span>⚠️</span><div>' + aiInline(ln.slice(qm[0].length)) + '</div></div>');
+        else blocks.push('<p class="sr-para">' + aiInline(ln) + '</p>');
       });
-      if (!seg.title && !paras.length && !bullets.length) return '';
-      let html = '<div class="read-block">';
+      flushBullets();
+      if (!seg.title && !blocks.length) return '';
+      let html = '<div class="read-block' + (isDisclaimer ? ' ai-disclaimer-block' : '') + '">';
       if (seg.title) {
         html += '<div class="read-sec-head">' +
           '<span class="read-sec-ico" style="background:' + th.bg + ';color:' + th.fg + '"><span data-icon="' + th.icon + '"></span></span>' +
           '<span class="read-sec-title">' + esc(seg.title) + '</span></div>';
       }
-      html += paras.join('') +
-        (bullets.length ? '<ul class="read-sec-list">' + bullets.map(function (b) { return '<li>' + b + '</li>'; }).join('') + '</ul>' : '') +
-        '</div>';
+      html += blocks.join('') + '</div>';
       return html;
     }).join('');
   }
@@ -1673,6 +1699,7 @@
         '<span class="read-sec-ico" style="background:' + icoBg + ';color:' + icoFg + '"><span data-icon="sparkles"></span></span>' +
         '<span class="read-sec-title">' + title + '</span>' +
         '<span class="dim-tag" style="margin-left:auto;background:#E4EBE2;color:#4E6B57">本次次数已使用</span></div>' +
+        '<div id="aiChartsSlot"></div>' +
         aiFormatHtml(safe(cache.text)) +
         '<div class="ai-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">' +
         '  <button type="button" class="btn btn-ghost btn-sm" data-act="ai-settings"><span data-icon="key-round"></span>AI 设置</button></div>' +
@@ -1701,6 +1728,8 @@
     const isTat = !!(ctx.cat && ctx.cat.id === 'tat');
     root.innerHTML = aiShell(text ? { text: text } : null, ctx.lastErr || '', isTat);
     icons.mount(root);
+    // 图表随 AI 解读一同出现：无解读则不显示，生成后立即挂到解读之后
+    syncChartsAfterAI(!!text, ctx.rep || {});
     root.onclick = function (e) {
       const hit = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
       if (!hit) return;
@@ -1731,6 +1760,29 @@
       stage.appendChild(wrap);
     }
     mountMBTIAI(wrap, { rep: rep || rec.report || {}, answers: rec.answers, resultId: rec.id, cat: cat, record: rec });
+  }
+  // 雷达图 + 偏好强度尺：点击生成 AI 解读后，出现在「AI 深度解读」标题之下、解读正文之前
+  function syncChartsAfterAI(hasAiText, rep) {
+    const slot = document.getElementById('aiChartsSlot');
+    if (!slot) return;
+    const existing = slot.querySelector('.pending-charts');
+    // 尚未生成 AI 解读时，不展示图表（与解读一起出现）
+    if (!hasAiText) { if (existing) existing.remove(); return; }
+    if (existing) return;
+    if (!pendingResultCharts) return;
+    const holder = document.createElement('div');
+    holder.className = 'pending-charts';
+    holder.innerHTML = pendingResultCharts;
+    slot.appendChild(holder);
+    icons.mount(holder);
+    try {
+      if (rep && rep.dims) {
+        const rr = holder.querySelector('#chartPolarRadar');
+        const mm = holder.querySelector('#chartMeters');
+        if (rr) charts.polarRadar(rr, { dims: rep.dims });
+        if (mm) charts.meters(mm, { dims: rep.dims });
+      }
+    } catch (e) { /* 图表挂载失败不影响报告 */ }
   }
   // 按实际作答题数反查对应版本的题库（多版本门类自动匹配）
   function bankForRecord(rec, cat) {
@@ -1772,8 +1824,8 @@
       '<span class="read-sec-title">AI 深度解读</span></div>' +
       '<div style="display:flex;gap:10px;align-items:center;color:var(--text-sub);font-size:14px">' +
       '<span class="spinner"></span>' + ((ctx.cat && ctx.cat.id === 'tat')
-        ? '正在静静读你写下的故事，并生成专属回看（视接口约 10–40 秒）…'
-        : '正在逐题分析你的作答并生成专属解读（视接口与题量约 10–40 秒）…') + '</div></div>';
+        ? '正在为您静静读完你写下的故事，生成专属回看…'
+        : '正在为您逐题细读，生成专属解读…') + '</div></div>';
     icons.mount(root);
     const bank = bankForRecord(ctx.record || {}, ctx.cat);
     const isTat = !!(ctx.cat && ctx.cat.id === 'tat');
@@ -1873,6 +1925,7 @@
   async function renderResult(resultId) {
     setShell('result');
     aiCtxRecord = null;
+    pendingResultCharts = null;
     try {
       const res = await A.getResult(resultId, state.deviceId);
       if (!res.ok) throw new Error(res.message);
@@ -1893,50 +1946,27 @@
 
       // 图表
       let chartHtml = '';
-      let dimsStripHtml = '';
       let profileHtml = '';
-      let clarityHtml = '';
       let disclaimerHtml = '';
       if (rep && rep.chart === 'mbtiPolar' && rep.dims) {
-        const dims = rep.dims;
-        // 四维偏好徽章条
-        dimsStripHtml = '<div class="dims-strip">' + dims.map(function (d) {
-          const tiedTag = d.tied ? '<span class="dim-tag dim-tie">模糊</span>' : '';
-          return '<span class="dim-chip">' +
-            '<span class="dim-letters"><em>' + d.fav.k + '</em><i>' + d.unfav.k + '</i></span>' +
-            '<span class="dim-body"><span class="dim-name">' + esc(d.name) + '</span>' +
-            '<span class="dim-val">' + (d.tied ? '左右趋近平衡' : d.band.text + d.fav.name) + '</span></span>' +
-            '<span class="dim-tag">' + esc(d.band ? d.band.label : '') + '</span>' + tiedTag +
-            '</span>';
-        }).join('') + '</div>';
+        // 暂时关闭：四维徽章条（精力来源 / 信息获取 / 决策方式 / 生活方式），避免与解读重复
+        // 暂时关闭：「类型强度与维度解读」，相关结论改由 AI 解读承载
         // 核心特质解读（长文）
         profileHtml = '<div class="read-block result-profile"><div class="read-sec-head">' +
           '<span class="read-sec-ico" style="background:#EFE5D8;color:#9A7B60"><span data-icon="book-open"></span></span>' +
           '<span class="read-sec-title">核心特质解读</span></div>' +
           (rep.profile || []).map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') +
           '</div>';
-        // 类型强度与维度解读：区分轻微/明显，并给出相邻类型（旧报告无该字段时自动隐藏）
-        if (rep.clarity && rep.clarity.text && rep.clarity.text.length) {
-          clarityHtml = '<div class="read-block result-clarity"><div class="read-sec-head">' +
-            '<span class="read-sec-ico" style="background:#E4E7D9;color:#77836B"><span data-icon="activity"></span></span>' +
-            '<span class="read-sec-title">类型强度与维度解读</span>' +
-            (rep.clarity.label ? '<span class="dim-tag" style="margin-left:auto">' + esc(rep.clarity.label) + '</span>' : '') +
-            '</div>' +
-            rep.clarity.text.map(function (p) { return '<p class="sr-para">' + esc(p) + '</p>'; }).join('') +
-            (rep.dimTexts && rep.dimTexts.length
-              ? '<div class="clarity-sub" style="font-weight:700;color:#4C463C;font-size:13.5px;margin:6px 0 2px 44px">四维强度逐项</div>' +
-                '<ul class="read-sec-list">' + rep.dimTexts.map(function (t2) { return '<li>' + esc(t2) + '</li>'; }).join('') + '</ul>'
-              : '') +
-            '</div>';
-        }
         disclaimerHtml = rep.disclaimer ? '<div class="result-disclaimer"><span data-icon="info-circle"></span>' + esc(rep.disclaimer) + '</div>' : '';
-        chartHtml =
+        // 雷达图与偏好强度尺：不再置于页首，改挂到「AI 解读」之后（renderResult 末尾按 pendingResultCharts 挂载）
+        pendingResultCharts = '<div class="chart-cards chart-cards-after-ai">' +
           '<div class="chart-card"><div class="chart-title">四维偏好雷达</div>' +
           '<div class="chart-sub">从中心向外为偏好强度：轻微 → 中等 → 明显</div>' +
           '<div class="radar-wrap" id="chartPolarRadar"></div></div>' +
           '<div class="chart-card"><div class="chart-title">偏好强度尺</div>' +
           '<div class="chart-sub">每维得分区间 −24 ~ +24 · 越靠所选字母一端强度越高</div>' +
-          '<div id="chartMeters"></div></div>';
+          '<div id="chartMeters"></div></div>' +
+          '</div>';
       } else if (rep && rep.chart === 'radar' && rep.axes) {
         const names = rep.axes.map(function (a) { return a.name.split(' ')[0]; });
         chartHtml =
@@ -1975,12 +2005,10 @@
         (rep && rep.typeEn ? '      <div class="result-en">' + esc(rep.typeEn) + '</div>' : '') +
         '      <div class="result-type-sub">' + esc(rep.tagline || '') + '</div>' +
         '    </div>' +
-        dimsStripHtml +
         '  </div>' +
-        '  <div class="chart-cards">' + chartHtml + '</div>' +
+        (chartHtml ? '  <div class="chart-cards">' + chartHtml + '</div>' : '') +
         profileHtml +
-        clarityHtml +
-        '  <div class="read-block">' + secHtml + '</div>' +
+        (secHtml ? '  <div class="read-block">' + secHtml + '</div>' : '') +
         '  <div class="result-actions">' +
         '    <a class="btn btn-primary" href="#cats"><span data-icon="arrow-left"></span>返回主页 · 选择测评</a>' +
         '    <a class="btn btn-ghost" href="#cats"><span data-icon="compass"></span>选择其他测评</a>' +
@@ -1989,11 +2017,8 @@
         '</div>');
       setShell('result');
 
-      // 挂图表（动画）
-      if (rep && rep.chart === 'mbtiPolar' && rep.dims) {
-        charts.polarRadar($('#chartPolarRadar'), { dims: rep.dims });
-        charts.meters($('#chartMeters'), { dims: rep.dims });
-      } else if (rep && rep.chart === 'radar') {
+      // 挂图表（动画）——MBTI 的雷达图/偏好强度尺随 AI 解读一同出现（见 syncChartsAfterAI）
+      if (rep && rep.chart === 'radar') {
         const axesR = rep.axes.map(function (a, i) {
           return { short: a.key, value: a.value, color: PALETTE[i % 6] };
         });
