@@ -106,6 +106,10 @@
 
   var bankDoc = buildDoc(); bankDoc.variant = 'doc';
   var bankCbs = buildCbs(); bankCbs.variant = 'cbs';
+  /* 合并版：控制欲动机 20 题 + 亲密关系控制行为 27 题（共 47 题）
+     前 20 题为 7 点「符合程度」，后 27 题为 5 点「发生频率」，逐题各带自己的选项集，
+     交卷后分别给出「动机剖面」与「行为频率剖面」两份结果。 */
+  var bankAll = buildDoc().concat(buildCbs()); bankAll.variant = 'all';
 
   var facets = [
     { key: 'aut', name: '自主决策' },
@@ -125,6 +129,7 @@
   global.Innerway = global.Innerway || {};
   global.Innerway.control = {
     variants: {
+      all: { key: 'all', label: '控制欲完整评估（动机 + 行为）', en: 'DOC + CBS-R · adapted', duration: '约 12–18 分钟', total: 47, hint: '前 20 题请按你日常生活中的普遍状态作答（符合程度，7 点）；后 27 题请按你在亲密关系中的真实情况作答（发生频率，5 点，若暂无伴侣可回想最近的亲密关系）。两部分会分别给出剖面。', bank: bankAll },
       doc: { key: 'doc', label: '控制欲动机测试', en: 'Desire for Control · adapted', duration: '约 5–8 分钟', total: 20, hint: '请根据你日常生活中的普遍状态作答：越靠右越符合你——通常没有"该不该"的对错。', bank: bankDoc },
       cbs: { key: 'cbs', label: '亲密关系控制行为测试', en: 'Controlling Behaviors · adapted', duration: '约 6–9 分钟', total: 27, hint: '请以你在伴侣关系中的真实情况作答（若暂无伴侣，可回想最近的亲密关系）：选项描述的是行为出现的频率。', bank: bankCbs }
     },

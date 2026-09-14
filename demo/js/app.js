@@ -293,6 +293,8 @@
 
   /* ================= 门类入口：先弹门类介绍，确认后再进入绑定流程 ================= */
   let categoryOpening = false;
+  // TAT 专属：开始前采集的基础信息（性别 / 年龄），随结果留档并作为背景供 AI 温和参考
+  let tatProfile = null;
   function openCategory(catId) {
     const cat = D.getCategory(catId);
     if (!cat) return;
@@ -300,7 +302,8 @@
     if (categoryOpening) return;
     categoryOpening = true;
     closeAllModals();
-    openCategoryIntro(cat);
+    if (cat.id === 'tat') openTatIntro(cat);
+    else openCategoryIntro(cat);
     categoryOpening = false;
   }
 
@@ -332,7 +335,7 @@
       '      <ul class="ci-notice-list">' +
       '        <li><b>一码一设备</b>：体验码激活后即与当前设备绑定，其他设备无法使用；更换设备需联系购买渠道解绑。</li>' +
       '        <li><b>AI 解读次数</b>：每份完成的测评可生成 <b>1 次</b> AI 深度解读，生成成功即用尽、不提供重新生成；生成失败可重试，重试不扣次数。</li>' +
-      '        <li><b>聚合解读</b>：同一体验码所包含的全部测评项都完成后，额外获得 <b>1 次</b>「完整人格档案」聚合解读。</li>' +
+      '        <li><b>聚合解读</b>：完成全部 9 个门类后，额外获得 <b>1 次</b>「完整人格档案」聚合解读（每台设备限 1 次，不提供重新生成）。</li>' +
       '        <li><b>退款政策</b>：体验码属一次性数字内容，<b>激活后不支持退款</b>；尚未激活的码请通过原购买渠道处理。</li>' +
       '        <li><b>内容性质</b>：测评与解读仅供自我探索参考，不构成医疗或心理诊断建议。</li>' +
       '      </ul>' +
@@ -350,6 +353,156 @@
     mask.addEventListener('click', function (e) { if (e.target === mask) close(); });
     const startBtn = mask.querySelector('[data-act="start"]');
     startBtn.addEventListener('click', function () { beginCategoryFlow(cat, mask, close); });
+  }
+
+  /* ================= TAT 专属：强化门类介绍 + 开始前引导 + 性别/年龄采集 ================= */
+  const TAT_GENDER_OPTS = ['女性', '男性', '非二元', '不便透露'];
+  const TAT_AGE_OPTS = ['18 岁以下', '18–24 岁', '25–34 岁', '35–44 岁', '45–54 岁', '55 岁及以上', '不便透露'];
+
+  function escAttr(s) { return esc(s); }
+
+  // TAT 专属门类介绍弹窗：参考官方 TAT 的介绍结构（什么是/如何/你将收获/负责与道德使用/FAQ）
+  function openTatIntro(cat) {
+    const mask = document.createElement('div');
+    mask.className = 'modal-mask';
+    const tat = (global.Innerway && global.Innerway.tat) || {};
+    const vCount = Object.keys(tat.variants || {}).length;
+    mask.innerHTML =
+      '<div class="modal modal-intro modal-tat" role="dialog" aria-modal="true">' +
+      '  <div class="modal-head">' +
+      '    <div class="ci-head">' +
+      '      <span class="ci-ico" style="background:' + escAttr(cat.tint || '#7C8A9B') + '"><span data-icon="' + escAttr(cat.icon || 'book-user') + '"></span></span>' +
+      '      <div><div class="modal-title">' + escAttr(cat.name) + '</div>' +
+      '        <div class="modal-sub">' + escAttr(cat.en || '') + '</div></div>' +
+      '    </div>' +
+      '    <button type="button" class="modal-x" data-close aria-label="关闭"><span data-icon="x"></span></button>' +
+      '  </div>' +
+      '  <div class="modal-body tat-body">' +
+      '    <div class="ci-chips">' +
+      '      <span class="ci-chip"><span data-icon="clock"></span>' + escAttr(cat.duration || '') + '</span>' +
+      '      <span class="ci-chip"><span data-icon="shield-check"></span>无对错 · 凭直觉</span>' +
+      (vCount > 1 ? '<span class="ci-chip"><span data-icon="layers"></span>含 ' + vCount + ' 个版本</span>' : '') +
+      '    </div>' +
+      /* 什么是 TAT */
+      '    <section class="tat-sec">' +
+      '      <h3 class="tat-sec-title"><span data-icon="book-open"></span>什么是 TAT？</h3>' +
+      '      <p>主题统觉测验（Thematic Apperception Test，TAT）是一种投射式心理探索方法：给你一幅幅<strong>模糊、多义</strong>的画面，请你说出自己看见的故事。故事里藏着你看待世界、他人与自己的方式——没有标准答案，也没有对错。</p>' +
+      '    </section>' +
+      /* 如何使用 */
+      '    <section class="tat-sec">' +
+      '      <h3 class="tat-sec-title"><span data-icon="layers"></span>如何使用</h3>' +
+      '      <ol class="tat-steps">' +
+      '        <li>你会在安静的环境下看到 <strong>10 幅</strong>原创多义意象图；</li>' +
+      '        <li>为每幅图写下你脑海中浮现的故事——发生了什么、人物在经历什么、会走向怎样的结局；</li>' +
+      '        <li>全程匿名，写满 <strong>2 幅即可提交</strong>，未写的画面不必勉强；</li>' +
+      '        <li>提交后，由 AI 温柔回看你的故事，陪伴你看见故事里的自己。</li>' +
+      '      </ol>' +
+      '    </section>' +
+      /* 你将收获 */
+      '    <section class="tat-sec">' +
+      '      <h3 class="tat-sec-title"><span data-icon="sparkles"></span>你将收获</h3>' +
+      '      <p>这不是一次"打分"，而是一场自我探索：你会收获一篇围绕你写下的故事展开的回看，涵盖反复浮现的主题、情绪基调、人与人的关系模式，以及值得自己留意的方向——帮助你更了解此刻的自己，也适合与信任的人或专业人士进一步深聊。</p>' +
+      '    </section>' +
+      /* 负责与道德使用 */
+      '    <section class="tat-sec tat-endorse">' +
+      '      <h3 class="tat-sec-title"><span data-icon="shield-check"></span>使用伦理与责任</h3>' +
+      '      <p>传统上，TAT 由受过训练的专业人员实施。本站提供的是<strong>教育与自我探索性质的模拟</strong>：</p>' +
+      '      <ul class="tat-list">' +
+      '        <li>用它探索自己的内心叙事，<strong>不要</strong>用它自我诊断心理状况；</li>' +
+      '        <li>如需个性化的建议或治疗支持，请与合格的专业人士讨论结果；</li>' +
+      '        <li>图版为本站原创（受 Morgan &amp; Murray 投射方法启发），不复制、不演绎原版卡片。</li>' +
+      '      </ul>' +
+      '      <p class="tat-ref">参考：Henry A. Murray (1943), “Thematic Apperception Test”</p>' +
+      '    </section>' +
+      /* FAQ */
+      '    <section class="tat-sec">' +
+      '      <h3 class="tat-sec-title"><span data-icon="chevron-down"></span>常见问题解答</h3>' +
+      '      <details class="tat-faq"><summary>TAT 测试是如何运作的？</summary>' +
+      '        <p>你会看到一系列模糊的图片，并被邀请围绕每张图各讲一个故事。你的故事会被整理成一份温柔的 AI 回看，用来帮助你理解自己的性格倾向、情绪模式与关系方式——理解你的动机，而非给你下判断。</p>' +
+      '      </details>' +
+      '    </section>' +
+      '    <div class="modal-actions">' +
+      '      <button type="button" class="btn btn-primary btn-block" data-act="start"><span data-icon="arrow-right"></span>了解 TAT · 开始测评</button>' +
+      '      <button type="button" class="btn btn-ghost btn-block" data-close>先看看别的</button>' +
+      '    </div>' +
+      '  </div>' +
+      '</div>';
+    icons.mount(mask);
+    $('#modal-root').appendChild(mask);
+    function close() { mask.remove(); }
+    mask.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', close); });
+    mask.addEventListener('click', function (e) { if (e.target === mask) close(); });
+    const startBtn = mask.querySelector('[data-act="start"]');
+    startBtn.addEventListener('click', function () { openTatBeforeStart(cat, mask, close); });
+  }
+
+  // 开始前引导 + 性别/年龄采集：单弹窗串联（了解 TAT → 引导 → 正式开始）
+  function openTatBeforeStart(cat, mask, closeIntro) {
+    const gi = ['男性', '女性', '非二元', '不便透露'].indexOf((tatProfile && tatProfile.gender) || '') ;
+    const ai = TAT_AGE_OPTS.indexOf((tatProfile && tatProfile.age) || '');
+    const genderSel = TAT_GENDER_OPTS.map(function (g, i) {
+      return '<button type="button" class="tat-g-btn' + (i === gi ? ' sel' : '') + '" data-g="' + escAttr(g) + '">' + escAttr(g) + '</button>';
+    }).join('');
+    const ageSel = TAT_AGE_OPTS.map(function (a, i) {
+      return '<button type="button" class="tat-a-btn' + (i === ai ? ' sel' : '') + '" data-a="' + escAttr(a) + '">' + escAttr(a) + '</button>';
+    }).join('');
+    mask.querySelector('.modal-intro').innerHTML =
+      '<div class="modal-head">' +
+      '  <div class="ci-head">' +
+      '    <span class="ci-ico" style="background:' + escAttr(cat.tint || '#7C8A9B') + '"><span data-icon="' + escAttr(cat.icon || 'book-user') + '"></span></span>' +
+      '    <div><div class="modal-title">在你开始前</div>' +
+      '      <div class="modal-sub">带上一份好奇与放松，我们慢慢来</div></div>' +
+      '  </div>' +
+      '  <button type="button" class="modal-x" data-close aria-label="关闭"><span data-icon="x"></span></button>' +
+      '</div>' +
+      '<div class="modal-body tat-body">' +
+      '  <div class="tat-before-note"><span data-icon="info-circle"></span>请为自己留出至少 <strong>15 分钟</strong>安静的时间，将手机静音，慢慢完成。</div>' +
+      '  <div class="tat-write-guide">' +
+      '    <div class="tat-wg-title"><span data-icon="book-user"></span>写作提示</div>' +
+      '    <ul class="tat-list">' +
+      '      <li>观察每幅图 <strong>30–60 秒</strong>，先记录下你的第一印象。</li>' +
+      '      <li>详细描述<strong>主人公</strong>、<strong>配角</strong>与<strong>背景设定</strong>。</li>' +
+      '      <li>解释此前的经过、当前的冲突，以及一个现实的结局。</li>' +
+      '      <li>尽量一次性写完以保持叙事连贯，推荐 <strong>250–400 字</strong>。</li>' +
+      '    </ul>' +
+      '  </div>' +
+      '  <div class="tat-profile">' +
+      '    <div class="tat-profile-label"><span data-icon="users"></span>为了更好地贴合你的回看（可选）</div>' +
+      '    <div class="tat-field"><div class="tat-field-label">性别</div><div class="tat-g-group" role="radiogroup" aria-label="性别">' + genderSel + '</div></div>' +
+      '    <div class="tat-field"><div class="tat-field-label">年龄段</div><div class="tat-a-group" role="radiogroup" aria-label="年龄段">' + ageSel + '</div></div>' +
+      '    <div class="tat-profile-hint">仅保存在本机并随本次结果留档，不会对外公开；不选择也可继续。</div>' +
+      '  </div>' +
+      '  <div class="modal-actions">' +
+      '    <button type="button" class="btn btn-primary btn-block" data-act="go"><span data-icon="arrow-right"></span>我已准备好 · 开始 TAT</button>' +
+      '    <button type="button" class="btn btn-ghost btn-block" data-close>再想想</button>' +
+      '  </div>' +
+      '</div>';
+    icons.mount(mask.querySelector('.modal-intro'));
+    // 性别单选
+    mask.querySelectorAll('.tat-g-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        mask.querySelectorAll('.tat-g-btn').forEach(function (x) { x.classList.remove('sel'); });
+        b.classList.add('sel');
+        tatProfile = tatProfile || {}; tatProfile.gender = b.getAttribute('data-g');
+      });
+    });
+    // 年龄单选
+    mask.querySelectorAll('.tat-a-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        mask.querySelectorAll('.tat-a-btn').forEach(function (x) { x.classList.remove('sel'); });
+        b.classList.add('sel');
+        tatProfile = tatProfile || {}; tatProfile.age = b.getAttribute('data-a');
+      });
+    });
+    // 关闭与开始：开始时不移除弹窗，交由 beginCategoryFlow 决定（新码分支复用同一弹窗串联）
+    mask.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeIntro); });
+    mask.querySelector('[data-act="go"]').addEventListener('click', function () {
+      beginCategoryFlow(cat, mask, function () { mask.remove(); });
+    });
+    // 多选按钮点击时阻止向 mask 背景冒泡触发关闭
+    mask.querySelectorAll('.tat-g-group,.tat-a-group').forEach(function (g) {
+      g.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
   }
 
   /* 介绍确认后：智能判断绑定态——进行中直接续答；已完成进入再测；全新在同一弹窗内切为专属码填写 */
@@ -432,17 +585,32 @@
 
   /* ================= 答题视图 ================= */
   const VARIANT_DEF = { holland: ['quick', 'full'], repression: ['quick', 'full'], control: ['doc', 'cbs'] };
+  /* 当前开放版本（2026-09-13 起：暂时关闭简版，每个门类只保留一套题量）
+     恢复多版本：删掉下面这一行（或改回对应键）即可，完整备份与回退步骤见 sideproduct/SERVER-STATUS.md */
+  const VARIANT_ON = { holland: 'full', repression: 'full', control: 'all' };
   function variantCfg(catId) {
-    if (catId === 'holland') return (global.Innerway.holland && global.Innerway.holland.variants) || null;
-    if (catId === 'repression') return (global.Innerway.repression && global.Innerway.repression.variants) || null;
-    if (catId === 'control') return (global.Innerway.control && global.Innerway.control.variants) || null;
-    return null;
+    const all = (catId === 'holland') ? ((global.Innerway.holland && global.Innerway.holland.variants) || null)
+      : (catId === 'repression') ? ((global.Innerway.repression && global.Innerway.repression.variants) || null)
+        : (catId === 'control') ? ((global.Innerway.control && global.Innerway.control.variants) || null)
+          : null;
+    if (!all) return null;
+    const only = VARIANT_ON[catId];
+    if (!only || !all[only]) return all;
+    const out = {};
+    out[only] = all[only];
+    return out;
   }
-  function isVariantCat(catId) { return catId === 'holland' || catId === 'repression' || catId === 'control'; }
-  // 解析测评版本（holland/repression/control 才有多个版本；其余门类固定）
+  // 只有一个开放版本时不再让用户选版本，直接开测
+  function isVariantCat(catId) {
+    const v = variantCfg(catId);
+    return !!v && Object.keys(v).length > 1;
+  }
+  // 解析测评版本：返回当前开放的版本；只有一个开放版本时恒为该版本
   function pickVariant(catId, want, src) {
-    if (!isVariantCat(catId)) return null;
-    const keys = variantCfg(catId) ? Object.keys(variantCfg(catId)) : VARIANT_DEF[catId];
+    const cfg = variantCfg(catId);
+    if (!cfg) return null;
+    const keys = Object.keys(cfg);
+    if (!keys.length) return null;
     const w = want || (src && src.variant) || null;
     return keys.indexOf(w) >= 0 ? w : keys[0];
   }
@@ -747,15 +915,15 @@
     let optsHtml = '';
     if (story) {
       const selT = q.answers[qi];
-      const guideChips = ['此刻 · 正在发生什么', '前因 · 在这之前', '心声 · 想与感受', '后来 · 会怎样'].map(function (g) {
+      const guideChips = ['观察 30–60 秒 · 记下第一印象', '主人公 · 配角 · 背景设定', '场景发生前的经过', '当前的冲突', '一个现实的结局', '一次写完 · 250–400 字'].map(function (g) {
         return '<span class="story-guide-chip">' + g + '</span>';
       }).join('');
       optsHtml =
         '<div class="story">' +
         '  <div class="story-fig">' + tatFigMarkup(item) + '</div>' +
         '  <div class="story-guide">' + guideChips + '</div>' +
-        '  <textarea class="story-ta" id="storyTa" rows="6" placeholder="写下你脑海里浮现的故事……两三句话也好，不必追求完整或“精彩”。">' + (typeof selT === 'string' ? esc(selT) : '') + '</textarea>' +
-        '  <div class="story-hint"><span data-icon="save-check"></span>每题约 2–3 分钟 · 写下即自动保存 · 答得越多，解读越准；写满 2 幅即可提前提交，未写的画面不必勉强</div>' +
+        '  <textarea class="story-ta" id="storyTa" rows="6" placeholder="先观察这幅图 30–60 秒，记下第一印象；再写：主人公 / 配角 / 背景发生了什么，一场现实的结局会如何……推荐 250–400 字。">' + (typeof selT === 'string' ? esc(selT) : '') + '</textarea>' +
+        '  <div class="story-hint"><span data-icon="save-check"></span>每题约 2–3 分钟 · 写下即自动保存 · 答得越多，解读越准；写满 2 幅即可提前提交，未写的画面不必勉强 · 尽量一次性写完以保持叙事连贯</div>' +
         '</div>';
     } else if (srItem) {
       const selS = q.answers[qi];
@@ -933,7 +1101,8 @@
       const report = engine.compute(q.categoryId, q.answers, q.variant);
       const res = await A.submitResult({
         code: q.code, categoryId: q.categoryId, deviceId: state.deviceId,
-        report: report, answers: q.answers
+        report: report, answers: q.answers,
+        profile: (q.categoryId === 'tat' && tatProfile) ? tatProfile : null
       });
       if (!res.ok) throw new Error(res.message);
       writeCache(q.categoryId, { code: q.code, answers: {}, current: 0, updatedAt: Date.now() }); // 清本地作答缓存
@@ -1004,8 +1173,11 @@
     // 门类卡片
     const catHtml = D.CATEGORIES.map(function (c) {
       const locked = !c.open;
-      return '<button type="button" class="cat-card' + (locked ? ' locked' : '') + '" data-cat="' + c.id + '" ' + (locked ? 'aria-disabled="true"' : '') + '>' +
-        (c.tag ? '<span class="cat-badge tag ' + (locked ? 'tag-ghost' : 'tag-sage') + '">' + esc(c.tag) + '</span>' : '') +
+      const featured = !locked && c.featured;
+      return '<button type="button" class="cat-card' + (locked ? ' locked' : '') + (featured ? ' featured' : '') + '" data-cat="' + c.id + '" ' + (locked ? 'aria-disabled="true"' : '') + '>' +
+        (featured
+          ? '<span class="cat-badge tag tag-gold">✦ 从这里开始</span>'
+          : (c.tag ? '<span class="cat-badge tag ' + (locked ? 'tag-ghost' : 'tag-sage') + '">' + esc(c.tag) + '</span>' : '')) +
         '<span class="cat-ico" style="background:' + c.tint + '"><span data-icon="' + c.icon + '"></span></span>' +
         '<span class="cat-name">' + esc(c.name) + '</span>' +
         '<span class="cat-en">' + esc(c.en) + '</span>' +
@@ -1246,6 +1418,76 @@
       return { short: nm.length > 6 ? nm.slice(0, 6) + '…' : nm, value: Math.round((r.avg / cMx) * 100) };
     });
     if (cAxes.length >= 3) charts.radar($('#ctrlRadar'), { axes: cAxes, title: (cat ? cat.name : '控制欲评估') + ' · 维度剖面', colors: ['#A9826A', '#B08D57', '#7D8A97', '#77836B', '#8A6E8C', '#6E7B62'] });
+    icons.mount($('#stage'));
+    window.scrollTo({ top: 0 });
+  }
+
+  /* 控制欲 · 合并版报告（动机卷 + 行为卷，两份剖面） */
+  function renderCtrlAllResult(rep, cat) {
+    setShell('result');
+    const dRep = rep.doc || {}, cRep = rep.cbs || {};
+    const sD = dRep.score || {}, sC = cRep.score || {};
+    const lvlOf = function (lvl) {
+      return { low: ['#E7E5DA', '#5C6A52'], mid: ['#F1E6CE', '#8A6B33'], high: ['#F3E3DB', '#93563F'] }[lvl] || ['#F1E6CE', '#8A6B33'];
+    };
+    const dc = lvlOf(sD.level), cc = lvlOf(sC.level);
+    const rowItem = function (r, max, alertable) {
+      const ratio = Math.min(100, Math.round((r.avg / max) * 100));
+      const flag = (alertable && r.alert) ? '<span class="dim-tag dim-tie">值得留意</span>' : '';
+      return '<div class="sr-srow"><div class="sr-srow-head"><span>' + esc(r.name) + flag + '</span>' +
+        '<b>' + r.avg + ' / ' + max + '</b></div>' +
+        '<div class="sr-track"><div class="sr-fill' + (flag ? ' is-alert' : '') + '" style="width:' + Math.max(3, ratio) + '%"></div></div></div>';
+    };
+    const docRows = (dRep.facets || []).map(function (r) { return rowItem(r, 7, false); }).join('');
+    const cbsRows = (cRep.domains || []).map(function (r) { return rowItem(r, 5, true); }).join('');
+
+    render('#stage',
+      '<div class="wrap" style="max-width:920px">' +
+      '  <div class="result-hero">' +
+      '    <div class="result-badge"><span data-icon="check-circle"></span>测评完成 · 报告已自动保存</div>' +
+      '    <div class="sr-variant">' + esc(cat ? cat.name : '控制欲心理评估') + ' · 完整评估（动机 + 行为）</div>' +
+      '    <div class="sr-dual">' +
+      '      <div class="sr-dual-cell"><span class="sr-dual-num">' + sD.raw + '<i>/140</i></span>' +
+      '        <span class="sr-dual-label">控制欲动机总分</span>' +
+      '        <span class="sr-dual-lvl" style="background:' + dc[0] + ';color:' + dc[1] + '">' + esc(sD.levelText || '') + '</span></div>' +
+      '      <div class="sr-dual-cell"><span class="sr-dual-num">' + sC.mean + '<i>/5</i></span>' +
+      '        <span class="sr-dual-label">关系控制行为频率</span>' +
+      '        <span class="sr-dual-lvl" style="background:' + cc[0] + ';color:' + cc[1] + '">' + esc(sC.levelText || '') + '</span></div>' +
+      '    </div>' +
+      '    <div class="result-type-sub" style="max-width:680px">前 20 题为动机卷（7 点符合程度），后 27 题为行为卷（5 点发生频率）。两部分独立计分，用于对照「想掌控的程度」与「实际做出多少」，不代表好或坏。</div>' +
+      '  </div>' +
+      '  <div class="chart-cards">' +
+      '    <div class="chart-card"><div class="chart-title">动机 · 情境面雷达</div><div class="chart-sub">四个情境面均分（满分 7，越靠外越明显）</div><div class="radar-wrap" id="ctrlRadarDoc"></div></div>' +
+      '    <div class="chart-card"><div class="chart-title">动机 · 情境面均分</div><div class="chart-sub">各面均分（满分 7）</div>' + docRows + '</div>' +
+      '  </div>' +
+      '  <div class="chart-cards">' +
+      '    <div class="chart-card"><div class="chart-title">行为 · 领域雷达</div><div class="chart-sub">六个领域频率均分（满分 5，越靠外越频繁）</div><div class="radar-wrap" id="ctrlRadarCbs"></div></div>' +
+      '    <div class="chart-card"><div class="chart-title">行为 · 领域频率</div><div class="chart-sub">均分 ≥ 2.5 标注为值得留意</div>' + cbsRows + '</div>' +
+      '  </div>' +
+      '  <div class="read-block"><div class="read-sec-head"><span class="read-sec-ico" style="background:#EFEAF5;color:#8C7AA6"><span data-icon="book-open"></span></span>' +
+      '    <span class="read-sec-title">核心解读</span></div>' +
+      (rep.summary || []).map(function (p) { return '<p class="sr-para">' + esc(p) + '</p>'; }).join('') +
+      '</div>' +
+      '  <div class="chart-cards"><div class="chart-card" style="grid-column:1/-1"><div class="chart-title">如何理解</div><div class="chart-sub">阅读提示与行动方向</div>' +
+      '<ul class="read-sec-list">' + (rep.tips || []).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div></div>' +
+      '  <div class="result-actions">' +
+      '    <a class="btn btn-primary" href="#cats"><span data-icon="arrow-left"></span>返回主页 · 选择测评</a>' +
+      '    <a class="btn btn-ghost" href="#cats"><span data-icon="compass"></span>选择其他测评</a>' +
+      '  </div>' +
+      '  <div class="result-disclaimer"><span data-icon="info-circle"></span>' + esc(rep.disclaimer || '') + '</div>' +
+      '</div>');
+    setShell('result');
+    const axesOf = function (src, max) {
+      return (src || []).map(function (r) {
+        const nm = String((r && r.name) || '');
+        return { short: nm.length > 6 ? nm.slice(0, 6) + '…' : nm, value: Math.round((r.avg / max) * 100) };
+      });
+    };
+    const PAL = ['#A9826A', '#B08D57', '#7D8A97', '#77836B', '#8A6E8C', '#6E7B62'];
+    const dAxes = axesOf(dRep.facets, 7);
+    const cAxes = axesOf(cRep.domains, 5);
+    if (dAxes.length >= 3) charts.radar($('#ctrlRadarDoc'), { axes: dAxes, title: (cat ? cat.name : '控制欲') + ' · 动机情境面', colors: PAL });
+    if (cAxes.length >= 3) charts.radar($('#ctrlRadarCbs'), { axes: cAxes, title: (cat ? cat.name : '控制欲') + ' · 行为领域', colors: PAL });
     icons.mount($('#stage'));
     window.scrollTo({ top: 0 });
   }
@@ -1627,7 +1869,7 @@
     const e = esc(t);
     return e.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   }
-  function aiFormatHtml(text) {
+  function aiFormatHtml(text, beforeDisclaimer) {
     const lines = String(text).split(/\r?\n/);
     const segs = [];
     let cur = null;
@@ -1653,6 +1895,18 @@
       if (!cur) { cur = { title: null, lines: [] }; segs.push(cur); }
       cur.lines.push(t.trim());
     });
+    // 「潜在长处」与「可能的盲区」合并在同一张卡片内（后一个标题降级为卡内小标题）
+    for (let i = 0; i < segs.length - 1; i++) {
+      const t1 = segs[i].title || '', t2 = segs[i + 1].title || '';
+      if (/潜在长处/.test(t1) && /盲区/.test(t2)) {
+        segs[i] = {
+          title: '潜在长处与可能的盲区',
+          lines: (segs[i].lines || []).concat([{ sub: t2 }], segs[i + 1].lines || [])
+        };
+        segs.splice(i + 1, 1);
+        break;
+      }
+    }
     // 开篇短评（无标题首段）移到解读最后，仍位于「说明与免责」之前
     if (segs.length > 1 && !segs[0].title) {
       const lead = segs.shift();
@@ -1662,7 +1916,9 @@
       }
       segs.splice(at, 0, lead);
     }
-    return segs.map(function (seg, i) {
+    const cards = [];
+    let disclaimerCard = '';
+    segs.forEach(function (seg, i) {
       const th = AI_THEME[i % AI_THEME.length];
       const isDisclaimer = /说明与免责/.test(seg.title || '');
       const blocks = [];
@@ -1687,7 +1943,7 @@
         else blocks.push('<p class="sr-para">' + aiInline(ln) + '</p>');
       });
       flushBullets();
-      if (!seg.title && !blocks.length) return '';
+      if (!seg.title && !blocks.length) return;
       let html = '<div class="read-block' + (isDisclaimer ? ' ai-disclaimer-block' : '') + '">';
       if (seg.title) {
         html += '<div class="read-sec-head">' +
@@ -1695,8 +1951,11 @@
           '<span class="read-sec-title">' + esc(seg.title) + '</span></div>';
       }
       html += blocks.join('') + '</div>';
-      return html;
-    }).join('');
+      // 「说明与免责」与「这份解读有帮助吗？」互换位置：解读正文 → 反馈区 → 免责声明收尾
+      if (isDisclaimer) disclaimerCard = html;
+      else cards.push(html);
+    });
+    return cards.join('') + (beforeDisclaimer || '') + disclaimerCard;
   }
 
   /* ---------- AI 解读反馈：本地留痕 + 申诉指引 ---------- */
@@ -1732,8 +1991,7 @@
         '<span class="read-sec-title">' + title + '</span>' +
         '<span class="dim-tag" style="margin-left:auto;background:#E4EBE2;color:#4E6B57">本次次数已使用</span></div>' +
         '<div id="aiChartsSlot"></div>' +
-        aiFormatHtml(safe(cache.text)) +
-        fbHtml +
+        aiFormatHtml(safe(cache.text), fbHtml) +
         '<div class="ai-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">' +
         '  <button type="button" class="btn btn-ghost btn-sm" data-act="ai-settings"><span data-icon="key-round"></span>AI 设置</button></div>' +
         '<div class="ai-note" style="margin-top:12px;font-size:12px;color:var(--text-sub)">每个完成的测评可免费生成 1 次' + (isTat ? ' AI 故事回看' : ' AI 深度解读') + '，本次已使用完毕（不提供重新生成）。完成一次新的测评可再次获得 1 次。内容仅供自我探索参考，不构成诊断或专业意见。</div>' +
@@ -1982,6 +2240,7 @@
       const tint = cat ? cat.tint : '#9A7B60';
       if (rep && rep.chart === 'sri') { renderSri(rep, cat); attachAI(rep, cat); return; }
       if (rep && (rep.chart === 'doc' || rep.chart === 'cbs')) { renderCtrlResult(rep, cat); attachAI(rep, cat); return; }
+      if (rep && rep.chart === 'ctrlAll') { renderCtrlAllResult(rep, cat); attachAI(rep, cat); return; }
       if (rep && rep.chart === 'dt') { renderDarkResult(rep, cat); attachAI(rep, cat); return; }
       if (rep && rep.chart === 'big5') { renderBigFive(rep, cat); attachAI(rep, cat); return; }
       if (rep && rep.chart === 'mh') { renderMHealth(rep, cat); attachAI(rep, cat); return; }
@@ -2197,11 +2456,11 @@
           : '  <button type="button" class="btn btn-ghost btn-sm" data-act="pf-run"><span data-icon="refresh-cw"></span>重新生成</button>') +
         '  <button type="button" class="btn btn-ghost btn-sm" data-act="ai-settings"><span data-icon="key-round"></span>AI 设置</button></div>' +
         (extra.serverMode
-          ? '<div class="ai-note" style="margin-top:12px;font-size:12px;color:var(--text-sub)">每个体验码限 1 次「完整人格档案」聚合解读，本次机会已使用（不提供重新生成）。</div>'
+          ? '<div class="ai-note" style="margin-top:12px;font-size:12px;color:var(--text-sub)">完成全部门类解锁的 1 次「完整人格档案」已使用（每台设备限 1 次，不提供重新生成）。</div>'
           : '');
     }
     if (extra.serverMode) {
-      return '<p class="arch-ai-intro">将你已完成的项目交由 AI 综合，输出一份约 800–1000 字的「完整人格档案」：稳定内核、情境性表现、测评间的印证与张力、可执行的成长方向。生成内容保存在服务端，每个体验码限 <b>1 次</b>，用后即止。</p>' +
+      return '<p class="arch-ai-intro">将你已完成的项目交由 AI 综合，输出一份约 800–1000 字的「完整人格档案」：稳定内核、情境性表现、测评间的印证与张力、可执行的成长方向。生成内容保存在服务端；完成全部 ' + (extra.total || 9) + ' 个门类后解锁，每台设备限 <b>1 次</b>，用后即止。</p>' +
         '<div class="ai-actions" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">' +
         '  <button type="button" class="btn btn-primary" data-act="pf-run"><span data-icon="sparkles"></span>用 AI 生成完整人格档案</button>' +
         '  <button type="button" class="btn btn-ghost" data-act="ai-settings"><span data-icon="key-round"></span>AI 设置（高级）</button></div>';
@@ -2227,18 +2486,17 @@
     const repaint = function () { mountArchiveAi(ctx); };
 
     const run = function () {
-      if (!unlocked) { toast(serverMode ? '请先完成本体验码包含的全部测评' : '请先完成全部测评', 'err'); return; }
+      if (!unlocked) { toast(serverMode ? ('请先完成全部 ' + (ctx.total || 9) + ' 个门类') : '请先完成全部测评', 'err'); return; }
       if (!AI) return;
       let payload = null;
       try { payload = AI.buildProfilePayload(ctx.results, ctx.cats); } catch (e) { payload = { count: ctx.results.length, items: [], mentalAlert: false }; }
 
-      // 服务端模式：由后端计次（每码 1 次聚合）并代理模型
+      // 服务端模式：由后端计次（每台设备 1 次聚合）并代理模型
       if (serverMode) {
-        if (!ctx.aggCode) { toast('未找到可用的体验码', 'err'); return; }
         box.innerHTML = '<div style="padding:26px 8px;text-align:center;color:var(--text-sub)"><span class="spinner"></span><div style="margin-top:12px">AI 正在综合 ' + ctx.results.length + ' 份测评结果生成完整人格档案…</div></div>';
-        API.aiChat({ kind: 'aggregate', code: ctx.aggCode, deviceId: state.deviceId, messages: AI.profileMessages(payload) }).then(function (r) {
+        API.aiChat({ kind: 'aggregate', deviceId: state.deviceId, messages: AI.profileMessages(payload) }).then(function (r) {
           if (r && r.ok && r.data && r.data.text) {
-            ctx.aggText = r.data.text; ctx.aggUnlocked = false;
+            ctx.aggText = r.data.text; ctx.aggUnlocked = false; ctx.aggUsed = true;
             toast('完整人格档案已生成');
             repaint();
           } else {
@@ -2324,20 +2582,17 @@
 
     const ctx = { allDone: allDone, missing: missing, total: openCats.length,
       results: openCats.map(function (c) { return byCat[c.id]; }).filter(Boolean), cats: cats };
-    // 服务端模式：聚合解读的解锁与余额以服务端「体验码计划」为准
+    // 服务端模式：聚合解读为设备级——完成全部门类才解锁，每台设备 1 次
     if (A.isServerMode && A.isServerMode()) {
-      const cr = await A.getMyCodes(state.deviceId);
-      const codes = (cr && cr.ok && cr.data) || [];
-      const usedCode = codes.filter(function (c) { return c.aggregateText; })[0] || null;
-      const readyCode = codes.filter(function (c) { return c.allDone && !c.aggregateText; })[0] || null;
-      ctx.aggCode = (readyCode || usedCode || codes[0] || {}).code || null;
-      ctx.aggText = (usedCode && usedCode.aggregateText) || '';
-      ctx.aggUnlocked = !!readyCode;
-      if (readyCode || usedCode) {
-        const c0 = readyCode || usedCode;
-        ctx.planTotal = c0.planTotal; ctx.planDone = c0.planDone;
-        ctx.allDone = true;   // 该码已全部完成（用于页面文案）
-        ctx.missing = [];
+      const ar = await A.getArchive(state.deviceId);
+      const ag = (ar && ar.ok && ar.data) || null;
+      if (ag) {
+        ctx.aggText = ag.text || '';
+        ctx.aggUnlocked = !!ag.unlocked && !ag.used;
+        ctx.aggUsed = !!ag.used;
+        ctx.aggDone = ag.doneCount;
+        ctx.aggTotal = ag.total;
+        ctx.allDone = !!ag.unlocked;   // 用于页面文案
       }
     }
     render('#stage',

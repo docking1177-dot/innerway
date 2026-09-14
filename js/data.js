@@ -10,6 +10,22 @@
 
   const CATEGORIES = [
     {
+      id: 'tat',
+      name: '意象叙事 · TAT',
+      en: 'Storytelling · Thematic Apperception',
+      icon: 'book-user',
+      tint: '#7C8A9B',           // 雾蓝灰（安静内省）
+      tintSoft: '#E3E7EC',
+      engine: 'tat',
+      open: true,
+      demo: true,
+      featured: true,            // 首推门类：置顶展示并加金色徽章（文案用邀请式表述，避免商业化口吻）
+      bankVersion: 1,
+      duration: '10 幅意象 · 每题约 2–3 分钟 · 写满 2 幅即可提交',
+      tag: '故事写作 · 写 2 幅即可提交',
+      desc: '受主题统觉测验（Morgan & Murray 的投射方法）启发：给你十幅原创多义意象图，请凭第一直觉为想写的画面讲一个“有前因、有当下、有结局”的故事，每题约 2–3 分钟，写下 2 幅以上即可提前提交，再由 AI 温柔回看故事里的你。图版为本站原创，无计分常模、非诊断。'
+    },
+    {
       id: 'mbti',
       name: 'MBTI 性格类型',
       en: 'Type Indicator · 自研题本',
@@ -35,9 +51,9 @@
       open: true,
       demo: true,
       bankVersion: 1,            // v1 = O*NET Interest Profiler（按 Career Exploration Tools License 许可使用/改编，须保留版权与商标声明）
-      duration: '双版本 · 30 / 60 题',
-      tag: '双版本 · 5 点量表',
-      desc: '依据美国劳工部（US DOL）O*NET® Interest Profiler（Holland RIASEC 六型模型）编译：精简版 30 题，完整版 60 题。O*NET® 为美国劳工部商标。'
+      duration: '60 题 · 约 8–12 分钟',
+      tag: '60 题 · 5 点量表',
+      desc: '依据美国劳工部（US DOL）O*NET® Interest Profiler（Holland RIASEC 六型模型）编译的完整版 60 题，每型 10 题。O*NET® 为美国劳工部商标。'
     },
     {
       id: 'darktriad',
@@ -94,7 +110,7 @@
       open: true,
       demo: true,
       bankVersion: 1,
-      duration: '双版本 · 38 / 126 题',
+      duration: '126 题 · 约 25–40 分钟',
       tag: '18+ 评估',
       desc: '改编自开源 SRI 项目（SIS/SES、Mosher、KISS-9、SOS 等公开量表），从回避、内疚、羞耻与抑制四个维度，输出 0–100 压抑指数。'
     },
@@ -109,9 +125,9 @@
       open: true,
       demo: true,
       bankVersion: 1,
-      duration: '双版本 · 20 / 27 题',
-      tag: '改编量表',
-      desc: '一个看动机、一个看行为：控制欲动机测试测你「想要掌控」的强度，亲密关系控制行为测试测你在关系里实施控制行为的频率。'
+      duration: '47 题 · 约 12–18 分钟',
+      tag: '动机 + 行为 · 47 题',
+      desc: '基于公开量表构念的本土化改编，一次作答含两卷：控制欲动机（20 题，测「想要掌控」的内在倾向）与亲密关系控制行为（27 题，测实际实施控制行为的频率），交卷后分别给出两份剖面（非原版量表、非诊断）。'
     },
     {
       id: 'spatial',
@@ -127,21 +143,6 @@
       duration: '4 场景 · 约 1–2 分钟',
       tag: '热区情境 · 体验',
       desc: '在咖啡馆、图书馆、聚会与旅行四种场景图上直接点击你“最可能待的位置”。以空间站位反映你对人际接近与独处的偏好方向（探索性参考，非正式量表）。'
-    },
-    {
-      id: 'tat',
-      name: '意象叙事 · TAT',
-      en: 'Storytelling · Thematic Apperception',
-      icon: 'book-user',
-      tint: '#7C8A9B',           // 雾蓝灰（安静内省）
-      tintSoft: '#E3E7EC',
-      engine: 'tat',
-      open: true,
-      demo: true,
-      bankVersion: 1,
-      duration: '10 幅意象 · 每题约 2–3 分钟 · 写满 2 幅即可提交',
-      tag: '故事写作 · 写 2 幅即可提交',
-      desc: '受主题统觉测验（Morgan & Murray 的投射方法）启发：给你十幅原创多义意象图，请凭第一直觉为想写的画面讲一个“有前因、有当下、有结局”的故事，每题约 2–3 分钟，写下 2 幅以上即可提前提交，再由 AI 温柔回看故事里的你。图版为本站原创，无计分常模、非诊断。'
     }
   ];
 

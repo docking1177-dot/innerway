@@ -322,6 +322,34 @@
   function computeControl(answers, variant) {
     const CFG = (global.Innerway && global.Innerway.control) || null;
     if (!CFG) return null;
+
+    /* 合并版（all）：前段动机卷 + 后段行为卷，拆开后分别计算再合并 */
+    if (variant === 'all') {
+      const vAll = CFG.variants.all;
+      if (!vAll) return null;
+      const docAns = {}, cbsAns = {};
+      let di = 0, ci = 0;
+      vAll.bank.forEach(function (it, qi) {
+        const a = answers[qi];
+        if (it.g === 'doc') { docAns[di] = a; di += 1; } else { cbsAns[ci] = a; ci += 1; }
+      });
+      const rDoc = computeControl(docAns, 'doc');
+      const rCbs = computeControl(cbsAns, 'cbs');
+      if (!rDoc || !rCbs) return null;
+      const sDoc = rDoc.score || {}, sCbs = rCbs.score || {};
+      return {
+        engine: 'control', version: 1, variant: 'all', chart: 'ctrlAll',
+        typeCode: 'DOC + CBS', typeName: '控制欲完整评估 · 动机 + 行为（本土化改编）',
+        tagline: '动机 ' + sDoc.raw + ' / 140 · 行为频率 ' + sCbs.mean + ' / 5',
+        score: { doc: sDoc, cbs: sCbs },
+        doc: rDoc, cbs: rCbs,
+        summary: ['本次你完成了两卷：动机卷（20 题）反映你「想要掌控」的内在倾向，行为卷（27 题）反映你在亲密关系中实际实施控制行为的频率。两者并不必然一致——动机偏高而行为克制、或压力情境下行为频率升高，都是常见组合。']
+          .concat(rDoc.summary || []).concat(rCbs.summary || []),
+        tips: (rDoc.tips || []).slice(0, 2).concat((rCbs.tips || []).slice(0, 2)),
+        disclaimer: String(rDoc.disclaimer || '') + ' ' + String(rCbs.disclaimer || '')
+      };
+    }
+
     const vk = (variant === 'cbs') ? 'cbs' : 'doc';
     const v = CFG.variants[vk];
     const bank = v.bank;

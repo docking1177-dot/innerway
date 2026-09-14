@@ -47,9 +47,10 @@
     getMyActive: function (deviceId) { return http('GET', '/me/active?deviceId=' + enc(deviceId)); },
     getMyResults: function (deviceId) { return http('GET', '/me/results?deviceId=' + enc(deviceId)); },
     getMyCodes: function (deviceId) { return http('GET', '/me/codes?deviceId=' + enc(deviceId)); },
+    getArchive: function (deviceId) { return http('GET', '/me/archive?deviceId=' + enc(deviceId)); },
     saveProgress: function (p) { return http('PUT', '/progress/' + enc(p.code), { code: p.code, categoryId: p.categoryId, deviceId: p.deviceId, variant: p.variant || null, answers: p.answers || {}, current: typeof p.current === 'number' ? p.current : 0 }); },
     getProgress: function (code, deviceId) { return http('GET', '/progress/' + enc(code) + '?deviceId=' + enc(deviceId)); },
-    submitResult: function (p) { return http('POST', '/results', { code: p.code, categoryId: p.categoryId, deviceId: p.deviceId, variant: p.variant || null, report: p.report, answers: p.answers || {} }); },
+    submitResult: function (p) { return http('POST', '/results', { code: p.code, categoryId: p.categoryId, deviceId: p.deviceId, variant: p.variant || null, report: p.report, answers: p.answers || {}, profile: p.profile || null }); },
     getResult: function (id, deviceId) { return http('GET', '/results/' + enc(id) + '?deviceId=' + enc(deviceId)); },
     saveResultAI: function (p) { return http('POST', '/results/' + enc(p.resultId) + '/ai', { resultId: p.resultId, deviceId: p.deviceId, aiText: p.aiText, model: p.model }); },
     demoPurchase: function () { return Promise.resolve(err('DEMO_DISABLED', '本站不在页面内发码，请通过官方渠道获取体验码。')); },
@@ -130,6 +131,26 @@
         };
       }));
     },
+    // 本地模式：聚合状态按"全部在架门类完成"计算（结构对齐服务端 /me/archive）
+    getArchive: async function (deviceId) {
+      await net();
+      const cats = (global.Innerway && global.Innerway.data && global.Innerway.data.CATEGORIES) || [];
+      const openCats = cats.filter(function (c) { return c.open; });
+      const results = S.listResultsByDevice(deviceId);
+      const done = {};
+      results.forEach(function (r) { done[r.categoryId] = true; });
+      const missing = openCats.filter(function (c) { return !done[c.id]; });
+      return ok({
+        total: openCats.length,
+        doneCount: openCats.length - missing.length,
+        missing: missing.map(function (c) { return c.id; }),
+        missingNames: missing.map(function (c) { return c.name; }),
+        unlocked: openCats.length > 0 && missing.length === 0,
+        used: false,
+        text: '',
+        at: null
+      });
+    },
     saveProgress: async function (payload) {
       await delay(120);
       S.saveProgress({
@@ -153,7 +174,7 @@
       if (codeRec.deviceId !== payload.deviceId) return err('FORBIDDEN', '设备与绑定不符');
       const result = S.createResult({
         code: payload.code.toUpperCase().trim(), categoryId: payload.categoryId, deviceId: payload.deviceId,
-        report: payload.report, answers: payload.answers || {}, createdAt: Date.now()
+        report: payload.report, answers: payload.answers || {}, profile: payload.profile || null, createdAt: Date.now()
       });
       codeRec.resultId = result.id;
       S.saveCode(codeRec);

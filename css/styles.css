@@ -92,7 +92,8 @@ img,svg{display:block}
 .tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;
   padding:3px 11px;border-radius:999px;line-height:1.5}
 .tag-sage{background:var(--sage-soft);color:#5C6A52}
-.tag-gold{background:var(--gold-soft);color:#8A6B33}
+.tag-gold{background:linear-gradient(120deg,#C9A25C,#B08D57);color:#FFFDF7;
+  box-shadow:0 2px 10px rgba(176,141,87,.30)}
 .tag-danger{background:var(--danger-soft);color:#93563F}
 .tag-ghost{background:transparent;border:1px solid var(--border);color:var(--text-sub)}
 .tag svg{width:12px;height:12px}
@@ -188,6 +189,10 @@ img,svg{display:block}
 .cat-go svg{width:15px;height:15px;transition:transform .25s var(--ease)}
 .cat-card:hover .cat-go svg{transform:translateX(3px)}
 .cat-badge{position:absolute;top:14px;right:14px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 首推门类：金色描边 + 顶部渐变条常亮 */
+.cat-card.featured{border-color:#D9BC82;box-shadow:var(--shadow-sm),0 0 0 1px rgba(201,162,92,.24),0 16px 36px rgba(176,141,87,.16)}
+.cat-card.featured::before{opacity:1}
+.cat-card.featured:hover{border-color:#C9A25C;box-shadow:var(--shadow-md),0 0 0 1px rgba(201,162,92,.30)}
 
 /* 完整人格档案入口条（首页）：深色横幅，与浅色页面形成对比 */
 .profile-strip{position:relative;display:flex;align-items:center;gap:18px;max-width:900px;margin:38px auto 0;padding:24px 26px;
@@ -462,6 +467,8 @@ img,svg{display:block}
 .shell-foot{border-top:1px solid rgba(227,218,202,.9);margin-top:60px;padding:22px 0 30px}
 .shell-foot-in{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
 .foot-note{font-size:12px;color:#6B6152}
+.foot-note.foot-police .link-like{display:inline-flex;align-items:center;gap:4px}
+.beian-icon{width:16px;height:auto;display:block}
 .foot-meta{display:flex;align-items:center;gap:16px}
 .foot-brand{font-family:var(--font-display);font-size:12px;letter-spacing:.3em;color:var(--text-sub)}
 
@@ -652,6 +659,47 @@ img,svg{display:block}
 .story-count{font-size:11.5px;color:var(--text-faint)}
 .story-count b{color:var(--primary-hover);font-weight:700}
 
+/* ---------- 意象叙事 TAT：专属介绍弹窗 / 开始前引导 ---------- */
+.modal-tat{width:min(620px,100%)}
+.tat-body{max-height:calc(88vh - 120px);overflow:auto;scrollbar-width:thin}
+.tat-sec{margin-top:18px;padding-top:16px;border-top:1px dashed #E3D9C3}
+.tat-sec:first-of-type{border-top:none;padding-top:0;margin-top:14px}
+.tat-sec-title{display:flex;align-items:center;gap:8px;font-family:var(--font-body);font-weight:800;font-size:15.5px;letter-spacing:.01em;color:var(--ink);margin:0 0 8px}
+.tat-sec-title svg{width:16px;height:16px;color:#7C8A9B;flex:none}
+.tat-sec p{font-size:13.5px;line-height:1.95;color:var(--ink);margin:6px 0 0}
+.tat-sec strong{color:var(--primary-hover);font-weight:700}
+.tat-sec.tat-endorse{background:#F2F5F3;border:1px solid #DCE5DD;border-radius:12px;padding:14px 15px;margin-top:16px}
+.tat-steps{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.tat-steps li{font-size:13.5px;line-height:1.8;color:var(--ink)}
+.tat-steps li strong,.tat-list li strong{color:var(--primary-hover);font-weight:700}
+.tat-list{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:7px;list-style:disc}
+.tat-list li{font-size:13.5px;line-height:1.8;color:var(--ink)}
+.tat-ref{font-size:12px;color:var(--text-faint);margin-top:8px!important}
+.tat-faq summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--primary-hover);display:flex;align-items:center;gap:6px}
+.tat-faq summary::before{content:"›";font-size:16px;color:var(--gold);transition:transform .2s var(--ease)}
+.tat-faq[open] summary::before{transform:rotate(90deg)}
+.tat-faq p{margin:8px 0 2px}
+/* 开始前引导 */
+.tat-before-note{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;line-height:1.8;color:#8A6B33;
+  background:var(--gold-soft);border:1px solid #EBDDBE;border-radius:12px;padding:12px 14px}
+.tat-before-note svg{width:16px;height:16px;flex:none;color:var(--gold);margin-top:3px}
+.tat-before-note strong{color:#6E5A2E;font-weight:800}
+.tat-write-guide{margin-top:16px;border:1px solid var(--border);border-radius:14px;background:#FFFDF8;padding:15px 16px}
+.tat-wg-title{display:flex;align-items:center;gap:7px;font-family:var(--font-body);font-weight:800;font-size:15.5px;letter-spacing:.01em;color:var(--ink)}
+.tat-wg-title svg{width:15px;height:15px;color:#7C8A9B}
+.tat-write-guide .tat-list{margin-top:10px;gap:9px}
+.tat-profile{margin-top:16px;border:1px solid #E3D9C3;border-radius:14px;background:var(--surface);padding:15px 16px}
+.tat-profile-label{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:var(--ink)}
+.tat-profile-label svg{width:15px;height:15px;color:var(--gold)}
+.tat-field{margin-top:13px}
+.tat-field-label{font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:8px}
+.tat-g-group,.tat-a-group{display:flex;flex-wrap:wrap;gap:8px}
+.tat-g-btn,.tat-a-btn{border:1px solid var(--border);background:#FFFDF8;color:var(--ink);border-radius:99px;
+  padding:7px 14px;font-size:13px;line-height:1.4;transition:all .2s var(--ease)}
+.tat-g-btn:hover,.tat-a-btn:hover{border-color:var(--gold);color:var(--primary-hover)}
+.tat-g-btn.sel,.tat-a-btn.sel{border-color:var(--primary);background:var(--primary-soft);color:var(--primary-hover);font-weight:700}
+.tat-profile-hint{font-size:11.5px;color:var(--text-faint);margin-top:12px;line-height:1.7}
+
 /* ---------- 意象叙事 TAT：结果页故事回看 ---------- */
 .tat-section{margin:26px 0 8px}
 .tat-story{background:var(--surface);border:1px solid var(--border);border-radius:16px;
@@ -717,6 +765,16 @@ img,svg{display:block}
 .sr-score i{font-style:normal;font-size:.42em;color:var(--text-faint);letter-spacing:.08em;font-weight:600}
 .sr-level{display:inline-block;margin:14px auto 0;padding:6px 20px;border-radius:999px;
   font-size:14px;font-weight:800;letter-spacing:.06em}
+/* 控制欲合并版：动机 / 行为 双分数并排 */
+.sr-dual{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:660px;margin:8px auto 16px}
+.sr-dual-cell{display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 12px;
+  border:1px solid var(--border);border-radius:14px;background:#FFFDF8}
+.sr-dual-num{font-family:var(--font-display);font-weight:700;font-size:34px;line-height:1.05;color:var(--ink);
+  display:flex;align-items:baseline;gap:2px}
+.sr-dual-num i{font-style:normal;font-size:13px;font-weight:600;color:var(--text-faint);letter-spacing:.06em}
+.sr-dual-label{font-size:12.5px;color:var(--text-sub)}
+.sr-dual-lvl{font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;letter-spacing:.04em}
+@media(max-width:600px){.sr-dual{grid-template-columns:1fr;gap:10px}}
 .sr-para{font-size:14.5px;color:#4C463C;line-height:2.05;margin:0 0 12px}
 .sr-para:last-child{margin-bottom:0}
 .sr-srow{margin:0 0 16px}
